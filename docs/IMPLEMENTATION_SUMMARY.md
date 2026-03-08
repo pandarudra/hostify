@@ -66,6 +66,10 @@ Created three comprehensive documents:
 Created a test script to simulate GitHub webhooks:
 
 ```bash
+# Test production
+node test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-secret
+
+# Or test locally
 node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-secret
 ```
 
@@ -88,6 +92,15 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ### Step 2: Deploy a Project
 
 ```bash
+# Production
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ghlink": "https://github.com/username/repo",
+    "subdomain": "my-app"
+  }'
+
+# Or local development
 curl -X POST http://localhost:3000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
@@ -102,7 +115,7 @@ This stores the project metadata in Cloudflare KV.
 
 1. Go to your GitHub repo → Settings → Webhooks → Add webhook
 2. Configure:
-   - **Payload URL**: `https://your-domain.com/int/api/v1/webhook/gh`
+   - **Payload URL**: `https://hostify-be.onrender.com/int/api/v1/webhook/gh`
    - **Content type**: `application/json`
    - **Secret**: Your `GITHUB_WEBHOOK_SECRET`
    - **Events**: "Just the push event"
@@ -191,6 +204,10 @@ npm run dev
 
 # In another terminal, test the webhook
 cd be
+# Test production
+node test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-secret
+
+# Or test locally
 node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-secret
 ```
 

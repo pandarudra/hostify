@@ -27,6 +27,15 @@ Restart your backend if it's running.
 ### 2️⃣ Deploy Your Project (1 minute)
 
 ```bash
+# Using the production URL
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ghlink": "https://github.com/YOUR_USERNAME/YOUR_REPO",
+    "subdomain": "my-app"
+  }'
+
+# Or for local development
 curl -X POST http://localhost:3000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
@@ -56,9 +65,8 @@ Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
 1. Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/hooks/new`
 
 2. Fill in:
-   - **Payload URL**: `https://YOUR_DOMAIN/int/api/v1/webhook/gh`
-     - Use ngrok URL for dev: `https://abc123.ngrok.io/int/api/v1/webhook/gh`
-     - Use your domain for prod: `https://hostify.com/int/api/v1/webhook/gh`
+   - **Payload URL**: `https://hostify-be.onrender.com/int/api/v1/webhook/gh`
+     - For local dev: `https://abc123.ngrok.io/int/api/v1/webhook/gh` (use your ngrok URL)
    - **Content type**: `application/json`
    - **Secret**: Paste your `GITHUB_WEBHOOK_SECRET` from step 1
    - **Which events**: Select "Just the push event"
@@ -114,11 +122,11 @@ Your auto-redeploy is now active! Every push to GitHub will automatically redepl
 
 ```bash
 # Production
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -d '{"ghlink": "https://github.com/user/repo", "subdomain": "app"}'
 
 # Staging
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -d '{"ghlink": "https://github.com/user/repo", "subdomain": "app-staging"}'
 ```
 
@@ -128,6 +136,10 @@ One push = all environments redeploy! 🚀
 
 ```bash
 cd be
+# Test production
+node test-webhook.js https://hostify-be.onrender.com https://github.com/user/repo.git your-secret
+
+# Or test locally
 node test-webhook.js http://localhost:3000 https://github.com/user/repo.git your-secret
 ```
 

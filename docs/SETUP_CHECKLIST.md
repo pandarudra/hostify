@@ -39,6 +39,15 @@ Check your `.env` file has:
 ### 3. Deploy Your First Project
 
 ```bash
+# Production
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ghlink": "https://github.com/YOUR_USERNAME/YOUR_REPO",
+    "subdomain": "my-app"
+  }'
+
+# Or local development
 curl -X POST http://localhost:3000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{

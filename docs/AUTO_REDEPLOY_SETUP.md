@@ -77,8 +77,8 @@ Deploy your backend to a cloud provider (Azure, AWS, etc.) with a public URL.
 1. Go to your GitHub repository
 2. Navigate to **Settings** → **Webhooks** → **Add webhook**
 3. Configure the webhook:
-   - **Payload URL**: `https://your-domain.com/int/api/v1/webhook/gh`
-     - Replace `your-domain.com` with your actual domain or ngrok URL
+   - **Payload URL**: `https://hostify-be.onrender.com/int/api/v1/webhook/gh`
+     - Or replace with your actual domain or ngrok URL for local dev
    - **Content type**: `application/json`
    - **Secret**: Paste the `GITHUB_WEBHOOK_SECRET` you generated
    - **Which events**: Select "Just the push event"
@@ -92,7 +92,7 @@ Deploy your backend to a cloud provider (Azure, AWS, etc.) with a public URL.
 First, deploy a project the normal way:
 
 ```bash
-curl -X POST https://your-domain.com/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/username/repo",
@@ -190,7 +190,7 @@ You can deploy the same repository multiple times with different subdomains:
 
 ```bash
 # Production
-curl -X POST https://your-domain.com/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/username/repo",
@@ -198,7 +198,7 @@ curl -X POST https://your-domain.com/api/v1/deploy \
   }'
 
 # Staging
-curl -X POST https://your-domain.com/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/username/repo",
@@ -206,7 +206,7 @@ curl -X POST https://your-domain.com/api/v1/deploy \
   }'
 
 # Development
-curl -X POST https://your-domain.com/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/username/repo",

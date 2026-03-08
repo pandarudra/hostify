@@ -191,6 +191,15 @@ Once the server is running, you can access interactive API documentation:
 **With custom subdomain:**
 
 ```bash
+# Production URL
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ghlink": "https://github.com/username/repository.git",
+    "subdomain": "my-awesome-site"
+  }'
+
+# Or for local development
 curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
@@ -202,7 +211,7 @@ curl -X POST http://localhost:8000/api/v1/deploy \
 **Without custom subdomain (uses default folder name):**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{"ghlink": "https://github.com/username/repository.git"}'
 ```
@@ -210,8 +219,8 @@ curl -X POST http://localhost:8000/api/v1/deploy \
 ### Example Usage with JavaScript
 
 ```javascript
-// With custom subdomain
-const response = await fetch("http://localhost:8000/api/v1/deploy", {
+// With custom subdomain (production)
+const response = await fetch("https://hostify-be.onrender.com/api/v1/deploy", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -237,7 +246,7 @@ Hostify supports automatic redeployment when you push code to GitHub, just like 
 1. **Deploy your project first**:
 
    ```bash
-   curl -X POST http://your-domain.com/api/v1/deploy \
+   curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
      -H "Content-Type: application/json" \
      -d '{
        "ghlink": "https://github.com/username/repo",
@@ -255,7 +264,7 @@ Hostify supports automatic redeployment when you push code to GitHub, just like 
 
 3. **Configure GitHub webhook**:
    - Go to your repo → Settings → Webhooks → Add webhook
-   - Payload URL: `https://your-domain.com/int/api/v1/webhook/gh`
+   - Payload URL: `https://hostify-be.onrender.com/int/api/v1/webhook/gh`
    - Content type: `application/json`
    - Secret: Your `GITHUB_WEBHOOK_SECRET`
    - Events: "Just the push event"
@@ -278,11 +287,11 @@ You can deploy the same repo multiple times:
 
 ```bash
 # Production
-curl -X POST http://your-domain.com/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app"}'
 
 # Staging
-curl -X POST http://your-domain.com/api/v1/deploy \
+curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app-staging"}'
 ```
 
@@ -294,6 +303,10 @@ Use the included test script:
 
 ```bash
 cd be
+# Test with production URL
+node test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-webhook-secret
+
+# Or test locally
 node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-webhook-secret
 ```
 
