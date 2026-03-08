@@ -16,3 +16,11 @@ export const AZURE_STORAGE_CONTAINER_NAME = process.env
   .AZURE_STORAGE_CONTAINER_NAME as string;
 export const AZURE_STORAGE_SAS_TOKEN = process.env
   .AZURE_STORAGE_SAS_TOKEN as string;
+
+// cloudflare configuration
+export const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID as string;
+export const CF_KV_NAMESPACE_ID = process.env.CF_KV_NAMESPACE_ID as string;
+export const CF_API_TOKEN = process.env.CF_API_TOKEN as string;
+
+// deployment constants for production
+export const isProd = (process.env.ENV as string) === "production";

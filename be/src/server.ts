@@ -1,9 +1,14 @@
 import express from "express";
 import http from "http";
-import { corsOptions, PORT } from "./constants/e.js";
+import { corsOptions, PORT, isProd } from "./constants/e.js";
 import cors from "cors";
 import { router } from "./router/index.js";
 import helmet from "helmet";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const execServer = () => {
   const app = express();
@@ -12,6 +17,13 @@ const execServer = () => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(helmet());
+
+  // Serve static files from local directory in development
+  if (!isProd) {
+    const localDir = path.join(__dirname, "../local");
+    app.use("/local", express.static(localDir));
+    console.log(`Serving local files from: ${localDir}`);
+  }
 
   // public api
   app.use("/api/v1", router.deployRouter);

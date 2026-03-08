@@ -13,7 +13,8 @@ const parseName = (url: string) => {
 const getfolderName = (repoName: string): string => {
   const uniqueSuffix = nanoid(6);
   const folderName = `${repoName}-${uniqueSuffix}`;
-  return folderName;
+  const lowerFolderName = folderName.toLowerCase();
+  return lowerFolderName;
 };
 // clone and return path to the cloned repo
 export async function cloneRepo(repoUrl: string) {

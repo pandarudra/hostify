@@ -4,34 +4,58 @@ import {
   uploadDirectoryToBlob,
   deleteLocalDirectory,
 } from "../utils/azureStorage.js";
+import { isProd } from "../constants/e.js";
+import { saveSubdomain } from "../utils/cloudflare.js";
 
 export const clonefromGh = async (ghlink: string) => {
   const res = await cloneRepo(ghlink);
   return res;
 };
 
-export const uploadtoServer = async (ghlink: string) => {
+export const uploadtoServer = async (
+  ghlink: string,
+  customSubdomain?: string,
+) => {
   try {
-    // Clone repository to local storage
-    await wait(2000); // simulate upload time
+    await wait(2000);
+
     const { folderName, path: localpath } = await cloneRepo(ghlink);
 
     console.log(`Repository cloned to local path: ${localpath}`);
 
-    // Upload to Azure Blob Storage
-    const blobPath = await uploadDirectoryToBlob(localpath, folderName);
+    // Use custom subdomain if provided, otherwise default to folder name
+    const subdomain = customSubdomain || folderName;
 
-    // Delete local folder after successful upload
-    deleteLocalDirectory(localpath);
+    let blobPath = localpath;
+    let url = "";
 
-    console.log(
-      `File uploaded to Azure Blob Storage: ${ghlink} in folder ${folderName}`,
-    );
-    console.log(`Local folder deleted: ${localpath}`);
+    if (isProd) {
+      // Upload project to Azure
+      blobPath = await uploadDirectoryToBlob(localpath, folderName);
+
+      // Save subdomain mapping to Cloudflare KV (required in production)
+      await saveSubdomain(subdomain, folderName);
+
+      // Generate public subdomain URL using the subdomain
+      url = `https://${subdomain}.rudrax.me`;
+
+      // Remove local files
+      deleteLocalDirectory(localpath);
+
+      console.log(`Project deployed: ${url}`);
+    } else {
+      // Local development - save to KV if configured (optional)
+      await saveSubdomain(subdomain, folderName);
+      url = `/local/${folderName}`;
+      console.log(`Repository available locally at: ${url}`);
+      console.log(`Subdomain '${subdomain}' mapped to folder '${folderName}'`);
+    }
 
     return {
       folderName: folderName,
+      subdomain: subdomain,
       path: blobPath,
+      url: url,
     };
   } catch (error) {
     console.error("Error in uploadtoServer:", error);

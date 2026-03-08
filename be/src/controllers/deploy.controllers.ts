@@ -2,9 +2,10 @@ import type { Request, Response } from "express";
 import { uploadtoServer } from "../helpers/upload.js";
 export const deploy = async (req: Request, res: Response): Promise<any> => {
   const ghlink = req.body.ghlink;
+  const customSubdomain = req.body.subdomain; // Optional custom subdomain
   if (!ghlink) throw new Error("GitHub link is required");
   try {
-    const blobPath = await uploadtoServer(ghlink);
+    const blobPath = await uploadtoServer(ghlink, customSubdomain);
     return res.status(200).json({
       success: true,
       message: "Deployment successful",
