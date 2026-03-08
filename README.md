@@ -4,12 +4,15 @@ A Node.js backend service that automatically deploys static websites from GitHub
 
 ## 🚀 Features
 
+- **Custom Subdomain Support**: Set your own subdomain or use the default folder name
+- **Cloudflare KV Storage**: Subdomain-to-folder mappings stored in Cloudflare KV for easy routing
 - **GitHub Repository Cloning**: Automatically clones any public GitHub repository
 - **Azure Blob Storage Integration**: Uploads files to Azure Storage with static website hosting
 - **Smart Path Resolution**: Automatically fixes absolute paths in HTML files for subfolder hosting
 - **Automatic Cleanup**: Removes local files after successful deployment
 - **Content-Type Detection**: Properly sets MIME types for all file types
 - **Optimized Caching**: Implements cache control headers for better performance
+- **Development & Production Modes**: Flexible configuration for local dev and production deployments
 
 ## 📋 Prerequisites
 
@@ -44,6 +47,15 @@ UPLOAD_DIR=./local
 AZURE_STORAGE_ACCOUNT_NAME=your-storage-account-name
 AZURE_STORAGE_CONTAINER_NAME=$web
 AZURE_STORAGE_SAS_TOKEN=your-sas-token-here
+
+# Environment Mode
+ENV=dev
+# ENV=production
+
+# Cloudflare Configuration (Optional in dev, Required in production)
+CF_ACCOUNT_ID=your-cloudflare-account-id
+CF_KV_NAMESPACE_ID=your-kv-namespace-id
+CF_API_TOKEN=your-cloudflare-api-token
 ```
 
 ## 🔧 Configuration
@@ -59,15 +71,29 @@ AZURE_STORAGE_SAS_TOKEN=your-sas-token-here
 
 4. Use the `$web` container for static website hosting
 
+### Cloudflare KV Setup
+
+1. Create a **Workers KV Namespace** in your Cloudflare account
+2. Generate an **API Token** with KV permissions:
+   - Account > Workers KV Storage > Edit
+3. Get your **Account ID** and **Namespace ID** from Cloudflare dashboard
+4. Add credentials to your `.env` file
+
+**Note**: Cloudflare KV is optional in development mode but required for production deployments.
+
 ### Environment Variables
 
-| Variable                       | Description                                    | Example                |
-| ------------------------------ | ---------------------------------------------- | ---------------------- |
-| `PORT`                         | Server port                                    | `8000`                 |
-| `UPLOAD_DIR`                   | Local temp directory for cloning               | `./local`              |
-| `AZURE_STORAGE_ACCOUNT_NAME`   | Azure storage account name                     | `hostify`              |
-| `AZURE_STORAGE_CONTAINER_NAME` | Container name (use `$web` for static hosting) | `$web`                 |
-| `AZURE_STORAGE_SAS_TOKEN`      | SAS token for authentication                   | `sv=2024-11-04&ss=...` |
+| Variable                       | Description                                    | Required | Example                |
+| ------------------------------ | ---------------------------------------------- | -------- | ---------------------- |
+| `PORT`                         | Server port                                    | Yes      | `8000`                 |
+| `UPLOAD_DIR`                   | Local temp directory for cloning               | Yes      | `./local`              |
+| `AZURE_STORAGE_ACCOUNT_NAME`   | Azure storage account name                     | Yes      | `hostify`              |
+| `AZURE_STORAGE_CONTAINER_NAME` | Container name (use `$web` for static hosting) | Yes      | `$web`                 |
+| `AZURE_STORAGE_SAS_TOKEN`      | SAS token for authentication                   | Yes      | `sv=2024-11-04&ss=...` |
+| `ENV`                          | Environment mode (`dev` or `production`)       | Yes      | `dev`                  |
+| `CF_ACCOUNT_ID`                | Cloudflare Account ID                          | Prod     | `abc123...`            |
+| `CF_KV_NAMESPACE_ID`           | Cloudflare KV Namespace ID                     | Prod     | `xyz789...`            |
+| `CF_API_TOKEN`                 | Cloudflare API Token with KV permissions       | Prod     | `token...`             |
 
 ## 🚦 Usage
 
@@ -96,9 +122,17 @@ npm start
 
 ```json
 {
-  "ghlink": "https://github.com/username/repository.git"
+  "ghlink": "https://github.com/username/repository.git",
+  "subdomain": "my-custom-subdomain" // Optional: defaults to folder name if not provided
 }
 ```
+
+**Parameters:**
+
+| Parameter   | Type   | Required | Description                                               |
+| ----------- | ------ | -------- | --------------------------------------------------------- |
+| `ghlink`    | string | Yes      | GitHub repository URL (must be public)                    |
+| `subdomain` | string | No       | Custom subdomain name (defaults to generated folder name) |
 
 **Success Response:**
 
@@ -108,7 +142,9 @@ npm start
   "message": "Deployment successful",
   "blobPath": {
     "folderName": "repository-abc123",
-    "path": "https://your-account.z30.web.core.windows.net/repository-abc123/index.html"
+    "subdomain": "my-custom-subdomain",
+    "path": "repository-abc123",
+    "url": "https://my-custom-subdomain.rudrax.me"
   }
 }
 ```
@@ -125,6 +161,19 @@ npm start
 
 ### Example Usage with cURL
 
+**With custom subdomain:**
+
+```bash
+curl -X POST http://localhost:8000/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ghlink": "https://github.com/username/repository.git",
+    "subdomain": "my-awesome-site"
+  }'
+```
+
+**Without custom subdomain (uses default folder name):**
+
 ```bash
 curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
@@ -134,6 +183,7 @@ curl -X POST http://localhost:8000/api/v1/deploy \
 ### Example Usage with JavaScript
 
 ```javascript
+// With custom subdomain
 const response = await fetch("http://localhost:8000/api/v1/deploy", {
   method: "POST",
   headers: {
@@ -141,11 +191,14 @@ const response = await fetch("http://localhost:8000/api/v1/deploy", {
   },
   body: JSON.stringify({
     ghlink: "https://github.com/username/repository.git",
+    subdomain: "my-awesome-site",
   }),
 });
 
 const data = await response.json();
-console.log(data.blobPath.path); // Deployed website URL
+console.log(data.blobPath.url); // https://my-awesome-site.rudrax.me
+console.log(data.blobPath.subdomain); // my-awesome-site
+console.log(data.blobPath.folderName); // repository-abc123
 ```
 
 ## 📁 Project Structure
@@ -163,6 +216,7 @@ hostify/
 │   │   │   └── index.ts
 │   │   ├── utils/
 │   │   │   ├── azureStorage.ts
+│   │   │   ├── cloudflare.ts
 │   │   │   ├── git.ts
 │   │   │   └── general.ts
 │   │   ├── constants/
@@ -177,16 +231,48 @@ hostify/
 
 ## 🔄 How It Works
 
-1. **Receive Request**: API receives a GitHub repository URL
+1. **Receive Request**: API receives a GitHub repository URL and optional custom subdomain
 2. **Clone Repository**: Repository is cloned to a temporary local directory with a unique folder name
-3. **Process Files**:
+3. **Subdomain Assignment**: Uses custom subdomain if provided, otherwise defaults to folder name
+4. **Process Files**:
    - Excludes `.git` folder and `.gitignore` files
    - Fixes absolute paths in HTML files to relative paths
-4. **Upload to Azure**: All files are uploaded to Azure Blob Storage with proper content types
-5. **Cleanup**: Local temporary directory is deleted after successful upload
-6. **Return URL**: Responds with the deployed website URL
+5. **Upload to Azure** (Production mode):
+   - All files are uploaded to Azure Blob Storage with proper content types
+   - Subdomain mapping is saved to Cloudflare KV
+6. **Cleanup**: Local temporary directory is deleted after successful upload (production only)
+7. **Return URL**: Responds with the deployed website URL using the chosen subdomain
 
 ## 🎨 Features in Detail
+
+### Custom Subdomains
+
+You can specify a custom subdomain for your deployment:
+
+- **With custom subdomain**: `{"subdomain": "my-site"}` → Deployed at `https://my-site.rudrax.me`
+- **Without subdomain**: Uses auto-generated folder name → `https://repository-abc123.rudrax.me`
+
+Subdomain mappings are stored in Cloudflare KV, allowing you to:
+
+- Route custom subdomains to the correct Azure Storage folder
+- Manage subdomain-to-deployment relationships
+- Lookup which folder a subdomain points to using `getSubdomain(subdomain)` function
+
+### Development vs Production Mode
+
+**Development Mode** (`ENV=dev`):
+
+- Files are stored locally in the `UPLOAD_DIR` folder
+- Cloudflare KV is optional (warnings shown if not configured)
+- No automatic cleanup of local files
+- URLs use local paths: `/local/{folderName}`
+
+**Production Mode** (`ENV=production`):
+
+- Files are uploaded to Azure Blob Storage
+- Cloudflare KV is required (errors if not configured)
+- Automatic cleanup of local files after upload
+- URLs use custom domain: `https://{subdomain}.rudrax.me`
 
 ### Automatic Path Fixing
 
@@ -241,9 +327,19 @@ Automatically sets correct MIME types for:
    - Verify the GitHub repository URL is correct
    - Ensure the repository is public or you have access
 
-4. **Local directory errors**
+4. **Cloudflare KV authentication errors**
+   - In development: Warnings are shown but deployment continues
+   - In production: Deployment fails if Cloudflare credentials are invalid
+   - Verify your API token has correct permissions for Workers KV
+   - Check that Account ID and Namespace ID are correct
+
+5. **Local directory errors**
    - Ensure the `UPLOAD_DIR` path is writable
    - Check disk space availability
+
+6. **Subdomain conflicts**
+   - Each subdomain maps to one folder in Cloudflare KV
+   - Redeploying with the same subdomain updates the mapping
 
 ## 🤝 Contributing
 
