@@ -13,6 +13,7 @@ A Node.js backend service that automatically deploys static websites from GitHub
 - **Content-Type Detection**: Properly sets MIME types for all file types
 - **Optimized Caching**: Implements cache control headers for better performance
 - **Development & Production Modes**: Flexible configuration for local dev and production deployments
+- **API Documentation**: Interactive API docs with Swagger UI and ReDoc
 
 ## 📋 Prerequisites
 
@@ -112,6 +113,24 @@ npm run build
 npm start
 ```
 
+### 📚 API Documentation
+
+Once the server is running, you can access interactive API documentation:
+
+- **Swagger UI**: [http://localhost:8000/api-docs](http://localhost:8000/api-docs)
+  - Interactive API explorer with "Try it out" functionality
+  - Test endpoints directly from your browser
+  - View request/response schemas
+
+- **ReDoc**: [http://localhost:8000/api-docs-redoc](http://localhost:8000/api-docs-redoc)
+  - Clean, responsive API documentation
+  - Better for reading and understanding the API
+  - Includes detailed schemas and examples
+
+- **OpenAPI JSON**: [http://localhost:8000/swagger.json](http://localhost:8000/swagger.json)
+  - Raw OpenAPI 3.0 specification
+  - Can be imported into Postman, Insomnia, or other API tools
+
 ### API Endpoint
 
 #### Deploy a GitHub Repository
@@ -207,6 +226,8 @@ console.log(data.blobPath.folderName); // repository-abc123
 hostify/
 ├── be/
 │   ├── src/
+│   │   ├── config/
+│   │   │   └── swagger.ts
 │   │   ├── controllers/
 │   │   │   └── deploy.controllers.ts
 │   │   ├── helpers/
@@ -360,6 +381,8 @@ ISC
 - Built with TypeScript and Express.js
 - Uses Azure Storage SDK for blob operations
 - Git operations powered by simple-git
+- API documentation powered by Swagger UI and ReDoc
+- Subdomain management with Cloudflare KV
 
 ---
 
