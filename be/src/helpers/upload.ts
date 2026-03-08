@@ -5,7 +5,7 @@ import {
   deleteLocalDirectory,
 } from "../utils/azureStorage.js";
 import { isProd } from "../constants/e.js";
-import { saveSubdomain } from "../utils/cloudflare.js";
+import { saveSubdomain, saveProjectMetadata } from "../utils/cloudflare.js";
 
 export const clonefromGh = async (ghlink: string) => {
   const res = await cloneRepo(ghlink);
@@ -33,8 +33,14 @@ export const uploadtoServer = async (
       // Upload project to Azure
       blobPath = await uploadDirectoryToBlob(localpath, folderName);
 
-      // Save subdomain mapping to Cloudflare KV (required in production)
-      await saveSubdomain(subdomain, folderName);
+      // Save complete project metadata to Cloudflare KV
+      await saveProjectMetadata({
+        subdomain: subdomain,
+        folderName: folderName,
+        repoUrl: ghlink,
+        createdAt: new Date().toISOString(),
+        lastDeployedAt: new Date().toISOString(),
+      });
 
       // Generate public subdomain URL using the subdomain
       url = `https://${subdomain}.rudrax.me`;
@@ -45,7 +51,13 @@ export const uploadtoServer = async (
       console.log(`Project deployed: ${url}`);
     } else {
       // Local development - save to KV if configured (optional)
-      await saveSubdomain(subdomain, folderName);
+      await saveProjectMetadata({
+        subdomain: subdomain,
+        folderName: folderName,
+        repoUrl: ghlink,
+        createdAt: new Date().toISOString(),
+        lastDeployedAt: new Date().toISOString(),
+      });
       url = `/local/${folderName}`;
       console.log(`Repository available locally at: ${url}`);
       console.log(`Subdomain '${subdomain}' mapped to folder '${folderName}'`);

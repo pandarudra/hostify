@@ -4,8 +4,12 @@ A Node.js backend service that automatically deploys static websites from GitHub
 
 ## 🚀 Features
 
+- **Auto-Redeploy on Push**: Automatically redeploys when you push to GitHub (like Vercel/Netlify)
+- **GitHub Webhook Integration**: Secure webhook endpoint with signature verification
 - **Custom Subdomain Support**: Set your own subdomain or use the default folder name
 - **Cloudflare KV Storage**: Subdomain-to-folder mappings stored in Cloudflare KV for easy routing
+- **Project Metadata Tracking**: Store and retrieve complete deployment information
+- **Multi-Project Support**: Deploy the same repo multiple times with different subdomains
 - **GitHub Repository Cloning**: Automatically clones any public GitHub repository
 - **Azure Blob Storage Integration**: Uploads files to Azure Storage with static website hosting
 - **Smart Path Resolution**: Automatically fixes absolute paths in HTML files for subfolder hosting
@@ -57,6 +61,9 @@ ENV=dev
 CF_ACCOUNT_ID=your-cloudflare-account-id
 CF_KV_NAMESPACE_ID=your-kv-namespace-id
 CF_API_TOKEN=your-cloudflare-api-token
+
+# GitHub Webhook Secret (Required for auto-redeploy)
+GITHUB_WEBHOOK_SECRET=your-webhook-secret-here
 ```
 
 ## 🔧 Configuration
@@ -84,17 +91,18 @@ CF_API_TOKEN=your-cloudflare-api-token
 
 ### Environment Variables
 
-| Variable                       | Description                                    | Required | Example                |
-| ------------------------------ | ---------------------------------------------- | -------- | ---------------------- |
-| `PORT`                         | Server port                                    | Yes      | `8000`                 |
-| `UPLOAD_DIR`                   | Local temp directory for cloning               | Yes      | `./local`              |
-| `AZURE_STORAGE_ACCOUNT_NAME`   | Azure storage account name                     | Yes      | `hostify`              |
-| `AZURE_STORAGE_CONTAINER_NAME` | Container name (use `$web` for static hosting) | Yes      | `$web`                 |
-| `AZURE_STORAGE_SAS_TOKEN`      | SAS token for authentication                   | Yes      | `sv=2024-11-04&ss=...` |
-| `ENV`                          | Environment mode (`dev` or `production`)       | Yes      | `dev`                  |
-| `CF_ACCOUNT_ID`                | Cloudflare Account ID                          | Prod     | `abc123...`            |
-| `CF_KV_NAMESPACE_ID`           | Cloudflare KV Namespace ID                     | Prod     | `xyz789...`            |
-| `CF_API_TOKEN`                 | Cloudflare API Token with KV permissions       | Prod     | `token...`             |
+| Variable                       | Description                                      | Required    | Example                |
+| ------------------------------ | ------------------------------------------------ | ----------- | ---------------------- |
+| `PORT`                         | Server port                                      | Yes         | `8000`                 |
+| `UPLOAD_DIR`                   | Local temp directory for cloning                 | Yes         | `./local`              |
+| `AZURE_STORAGE_ACCOUNT_NAME`   | Azure storage account name                       | Yes         | `hostify`              |
+| `AZURE_STORAGE_CONTAINER_NAME` | Container name (use `$web` for static hosting)   | Yes         | `$web`                 |
+| `AZURE_STORAGE_SAS_TOKEN`      | SAS token for authentication                     | Yes         | `sv=2024-11-04&ss=...` |
+| `ENV`                          | Environment mode (`dev` or `production`)         | Yes         | `dev`                  |
+| `CF_ACCOUNT_ID`                | Cloudflare Account ID                            | Prod        | `abc123...`            |
+| `CF_KV_NAMESPACE_ID`           | Cloudflare KV Namespace ID                       | Prod        | `xyz789...`            |
+| `CF_API_TOKEN`                 | Cloudflare API Token with KV permissions         | Prod        | `token...`             |
+| `GITHUB_WEBHOOK_SECRET`        | Secret for GitHub webhook signature verification | Recommended | `your-secret`          |
 
 ## 🚦 Usage
 
@@ -219,6 +227,80 @@ console.log(data.blobPath.url); // https://my-awesome-site.rudrax.me
 console.log(data.blobPath.subdomain); // my-awesome-site
 console.log(data.blobPath.folderName); // repository-abc123
 ```
+
+## 🔄 Auto-Redeploy with GitHub Webhooks
+
+Hostify supports automatic redeployment when you push code to GitHub, just like Vercel and Netlify!
+
+### Quick Setup
+
+1. **Deploy your project first**:
+
+   ```bash
+   curl -X POST http://your-domain.com/api/v1/deploy \
+     -H "Content-Type: application/json" \
+     -d '{
+       "ghlink": "https://github.com/username/repo",
+       "subdomain": "my-app"
+     }'
+   ```
+
+2. **Generate a webhook secret**:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+
+   Add this to your `.env` as `GITHUB_WEBHOOK_SECRET`
+
+3. **Configure GitHub webhook**:
+   - Go to your repo → Settings → Webhooks → Add webhook
+   - Payload URL: `https://your-domain.com/int/api/v1/webhook/gh`
+   - Content type: `application/json`
+   - Secret: Your `GITHUB_WEBHOOK_SECRET`
+   - Events: "Just the push event"
+
+4. **Push to GitHub** and watch your site redeploy automatically! 🎉
+
+### How It Works
+
+When you push to GitHub:
+
+1. GitHub sends a webhook to your Hostify backend
+2. Hostify verifies the signature for security
+3. Looks up all projects using that repository (from Cloudflare KV)
+4. Redeploys each project automatically
+5. Updates the `lastDeployedAt` timestamp
+
+### Multiple Deployments from Same Repo
+
+You can deploy the same repo multiple times:
+
+```bash
+# Production
+curl -X POST http://your-domain.com/api/v1/deploy \
+  -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app"}'
+
+# Staging
+curl -X POST http://your-domain.com/api/v1/deploy \
+  -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app-staging"}'
+```
+
+When you push to GitHub, **both deployments will automatically redeploy**!
+
+### Testing the Webhook
+
+Use the included test script:
+
+```bash
+cd be
+node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-webhook-secret
+```
+
+### 📖 Full Documentation
+
+For complete setup instructions, troubleshooting, and advanced features, see:
+**[AUTO_REDEPLOY_SETUP.md](./AUTO_REDEPLOY_SETUP.md)**
 
 ## 📁 Project Structure
 
