@@ -42,6 +42,17 @@ const execServer = () => {
     console.log(`Serving local files from: ${localDir}`);
   }
 
+  // Welcome route
+  app.get("/", (req, res) => {
+    res.send(welcomeHtml);
+  });
+
+  // public api
+  app.use("/api/v1", router.deployRouter);
+
+  // internal api
+  app.use("/int/api/v1", router.gitRouter);
+
   // API Documentation
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -56,17 +67,16 @@ const execServer = () => {
     res.send(redoclyHtml);
   });
 
-  // Welcome route
-  app.get("/", (req, res) => {
-    res.send(welcomeHtml);
-  });
-
-  // public api
-  app.use("/api/v1", router.deployRouter);
-
   const server = http.createServer(app);
+
   server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log(
+      `API documentation available at: http://localhost:${PORT}/api/docs`,
+    );
+    console.log(
+      `ReDoc documentation available at: http://localhost:${PORT}/api/redoc`,
+    );
   });
 };
 
