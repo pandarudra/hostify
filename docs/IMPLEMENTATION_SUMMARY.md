@@ -61,16 +61,16 @@ Created three comprehensive documents:
 
 ### 6. Testing Tool
 
-**File**: `be/test-webhook.js`
+**File**: `be/test/test-webhook.js`
 
 Created a test script to simulate GitHub webhooks:
 
 ```bash
 # Test production
-node test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-secret
+node test/test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-secret
 
 # Or test locally
-node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-secret
+node test/test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-secret
 ```
 
 ## How to Use It
@@ -233,7 +233,10 @@ ngrok http 3000
 5. ✏️ `README.md` - Added auto-redeploy documentation
 6. ✨ `AUTO_REDEPLOY_SETUP.md` - Complete setup guide
 7. ✨ `be/.env.example` - Example environment file
-8. ✨ `be/test-webhook.js` - Webhook testing tool
+8. ✨ `be/test/test-webhook.js` - Webhook testing tool
+9. ✨ `be/scripts/test-todolist.sh` - Automated testing script
+10. ✨ `be/test/README.md` - Testing scripts documentation
+11. ✨ `be/scripts/README.md` - Utility scripts documentation
 
 ## Next Steps (Optional Enhancements)
 
@@ -254,7 +257,8 @@ Check these resources:
 
 - **Full Setup Guide**: [AUTO_REDEPLOY_SETUP.md](./AUTO_REDEPLOY_SETUP.md)
 - **Environment Example**: [be/.env.example](./be/.env.example)
-- **Test Script**: [be/test-webhook.js](./be/test-webhook.js)
+- **Test Script**: [be/test/test-webhook.js](./be/test/test-webhook.js)
+- **Automated Testing**: [be/scripts/test-todolist.sh](./be/scripts/test-todolist.sh)
 
 ---
 

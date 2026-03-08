@@ -304,10 +304,17 @@ Use the included test script:
 ```bash
 cd be
 # Test with production URL
-node test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-webhook-secret
+node test/test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-webhook-secret
 
 # Or test locally
-node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-webhook-secret
+node test/test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-webhook-secret
+```
+
+**Or use the automated test script:**
+
+```bash
+cd be
+./scripts/test-todolist.sh production
 ```
 
 ### 📖 Full Documentation

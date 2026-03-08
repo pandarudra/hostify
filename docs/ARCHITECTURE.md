@@ -216,8 +216,11 @@ hostify/
 │   │   └── utils/
 │   │       ├── cloudflare.ts           # ⭐ KV storage (ENHANCED)
 │   │       └── git.ts                  # Git clone operations
-│   ├── .env.example                    # ⭐ Example config (NEW)
-│   └── test-webhook.js                 # ⭐ Testing tool (NEW)
+│   ├── test/
+│   │   └── test-webhook.js         # ⭐ Testing tool (NEW)
+│   ├── scripts/
+│   │   └── test-todolist.sh        # ⭐ Automated test (NEW)
+│   └── .env.example                # ⭐ Example config (NEW)
 ├── AUTO_REDEPLOY_SETUP.md             # ⭐ Complete guide (NEW)
 ├── IMPLEMENTATION_SUMMARY.md          # ⭐ What changed (NEW)
 ├── SETUP_CHECKLIST.md                 # ⭐ Setup steps (NEW)

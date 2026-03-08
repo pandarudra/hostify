@@ -137,10 +137,10 @@ One push = all environments redeploy! 🚀
 ```bash
 cd be
 # Test production
-node test-webhook.js https://hostify-be.onrender.com https://github.com/user/repo.git your-secret
+node test/test-webhook.js https://hostify-be.onrender.com https://github.com/user/repo.git your-secret
 
 # Or test locally
-node test-webhook.js http://localhost:3000 https://github.com/user/repo.git your-secret
+node test/test-webhook.js http://localhost:3000 https://github.com/user/repo.git your-secret
 ```
 
 ### View Webhook Logs

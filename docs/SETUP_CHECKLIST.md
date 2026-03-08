@@ -99,7 +99,7 @@ Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/hooks/new`
 
 ```bash
 cd be
-node test-webhook.js http://localhost:3000 https://github.com/YOUR_USERNAME/YOUR_REPO.git YOUR_WEBHOOK_SECRET
+node test/test-webhook.js http://localhost:3000 https://github.com/YOUR_USERNAME/YOUR_REPO.git YOUR_WEBHOOK_SECRET
 ```
 
 - [ ] Test script runs without errors
