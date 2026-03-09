@@ -28,3 +28,6 @@ export const GITHUB_WEBHOOK_SECRET = process.env
 
 // deployment constants for production
 export const isProd = (process.env.ENV as string) === "production";
+export const PROD_DEPLOYMENT_URL = process.env.PROD_URL as string;
+export const LOCAL_WEBHOOK_URL =
+  process.env.LOCAL_WEBHOOK_URL || `http://localhost:${PORT}`;

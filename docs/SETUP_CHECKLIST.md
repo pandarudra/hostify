@@ -48,7 +48,7 @@ curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   }'
 
 # Or local development
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/YOUR_USERNAME/YOUR_REPO",
@@ -70,7 +70,7 @@ curl -X POST http://localhost:3000/api/v1/deploy \
 
 ```bash
 # Option A: Using ngrok
-ngrok http 3000
+ngrok http 8000
 # Copy the HTTPS URL (e.g., https://abc123.ngrok.io)
 ```
 
@@ -99,7 +99,7 @@ Go to: `https://github.com/YOUR_USERNAME/YOUR_REPO/settings/hooks/new`
 
 ```bash
 cd be
-node test/test-webhook.js http://localhost:3000 https://github.com/YOUR_USERNAME/YOUR_REPO.git YOUR_WEBHOOK_SECRET
+node test/test-webhook.js http://localhost:8000 https://github.com/YOUR_USERNAME/YOUR_REPO.git YOUR_WEBHOOK_SECRET
 ```
 
 - [ ] Test script runs without errors
@@ -142,7 +142,7 @@ git push
 
 ```bash
 # Staging environment
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/YOUR_USERNAME/YOUR_REPO",
@@ -150,7 +150,7 @@ curl -X POST http://localhost:3000/api/v1/deploy \
   }'
 
 # Development environment
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/YOUR_USERNAME/YOUR_REPO",

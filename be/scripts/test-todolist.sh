@@ -29,7 +29,7 @@ if [ "$ENV" = "production" ]; then
     BACKEND_URL="https://hostify-be.onrender.com"
     echo -e "${BLUE}🚀 Testing with PRODUCTION backend: $BACKEND_URL${NC}"
 elif [ "$ENV" = "local" ]; then
-    BACKEND_URL="http://localhost:3000"
+    BACKEND_URL="http://localhost:8000"
     echo -e "${BLUE}🏠 Testing with LOCAL backend: $BACKEND_URL${NC}"
 else
     echo -e "${RED}❌ Invalid environment. Use: production or local${NC}"

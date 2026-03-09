@@ -10,6 +10,7 @@ import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.js";
 import { redoclyHtml } from "./config/redocly.js";
 import { welcomeHtml } from "./config/general.js";
+import { connectDB } from "./config/database.js";
 
 // Suppress DEP0169 warning from swagger-ui-express dependency
 const originalEmitWarning = process.emitWarning;
@@ -23,8 +24,17 @@ process.emitWarning = function (warning, ...args: any[]) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const execServer = () => {
+const execServer = async () => {
   const app = express();
+
+  // Connect to MongoDB
+  try {
+    await connectDB();
+  } catch (error) {
+    console.warn(
+      "⚠️  Continuing without database. Auth features will be disabled.",
+    );
+  }
 
   app.use(cors(corsOptions));
   app.use(express.json());
@@ -47,11 +57,17 @@ const execServer = () => {
     res.send(welcomeHtml);
   });
 
-  // public api
-  app.use("/api/v1", router.deployRouter);
+  // Authentication routes (new)
+  app.use("/api/auth", router.authRouter);
 
-  // internal api
-  app.use("/int/api/v1", router.gitRouter);
+  // Repository and deployment management routes (new, protected)
+  app.use("/api", router.repoRouter);
+
+  // Deployment routes (with authentication)
+  app.use("/api/v1/deploy", router.deployRouter);
+
+  // Webhook routes (internal)
+  app.use("/api/git", router.gitRouter);
 
   // API Documentation
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));

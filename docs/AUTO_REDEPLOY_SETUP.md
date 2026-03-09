@@ -1,16 +1,34 @@
 # Auto-Redeploy Setup Guide
 
-This guide will help you set up automatic redeployment when code is pushed to GitHub, similar to Vercel and Netlify.
+This guide covers **manual webhook setup**. If you want automatic webhook creation (recommended), see **[AUTOMATED_WEBHOOK_SETUP.md](./AUTOMATED_WEBHOOK_SETUP.md)** instead.
+
+---
 
 ## Overview
 
-When you push code to GitHub, a webhook triggers automatic redeployment of all projects using that repository. The system:
+When you push code to GitHub, a webhook triggers automatic redeployment of your project. The system uses **token-based authentication** where each deployed project gets a unique webhook URL:
 
-1. ✅ Verifies the webhook signature for security
-2. ✅ Identifies all projects using the repository (via Cloudflare KV)
-3. ✅ Redeploys each project automatically
+1. ✅ Each project gets a unique webhook token during deployment
+2. ✅ Token is verified for security (no shared secrets needed)
+3. ✅ Webhook redeploys only the specific project
 4. ✅ Updates deployment timestamps
-5. ✅ Returns detailed status for each deployment
+5. ✅ Returns detailed deployment status
+
+## Two Setup Options
+
+### 🚀 Option 1: Automatic (Recommended)
+
+Provide a GitHub Personal Access Token during deployment, and the webhook is created automatically.
+
+**See**: [AUTOMATED_WEBHOOK_SETUP.md](./AUTOMATED_WEBHOOK_SETUP.md)
+
+### 📝 Option 2: Manual (This Guide)
+
+Add the webhook URL to GitHub yourself. Useful if you prefer not to provide a GitHub token.
+
+**Continue reading below** ↓
+
+---
 
 ## Prerequisites
 
@@ -24,7 +42,7 @@ Add the following to your `.env` file:
 
 ```env
 # Existing variables
-PORT=3000
+PORT=8000
 ENV=production # or development
 UPLOAD_DIR=local
 
@@ -37,19 +55,9 @@ AZURE_STORAGE_SAS_TOKEN=your_sas_token
 CF_ACCOUNT_ID=your_cloudflare_account_id
 CF_KV_NAMESPACE_ID=your_kv_namespace_id
 CF_API_TOKEN=your_cloudflare_api_token
-
-# GitHub Webhook Secret (recommended for security)
-GITHUB_WEBHOOK_SECRET=your_webhook_secret
 ```
 
-### Generating GitHub Webhook Secret
-
-1. Generate a secure random string:
-   ```bash
-   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-   ```
-2. Copy the output and add it to your `.env` file as `GITHUB_WEBHOOK_SECRET`
-3. You'll use this same secret when configuring the GitHub webhook
+**Note**: `GITHUB_WEBHOOK_SECRET` is no longer needed! Each project now has its own unique webhook token.
 
 ## Step 2: Expose Your Backend to the Internet
 
@@ -63,27 +71,54 @@ Deploy your backend to a cloud provider (Azure, AWS, etc.) with a public URL.
 
 1. Install ngrok: `npm install -g ngrok`
 2. Start your backend: `npm start`
-3. In another terminal: `ngrok http 3000`
+3. In another terminal: `ngrok http 8000`
 4. Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
 
 ### Option C: Development with VS Code Tunnels
 
 1. Install VS Code Remote Tunnels extension
-2. Forward port 3000
+2. Forward port 8000
 3. Use the generated public URL
 
 ## Step 3: Configure GitHub Webhook
 
+### Get Your Webhook URL
+
+When you deploy a project, you'll receive a unique webhook URL in the response:
+
+```json
+{
+  "success": true,
+  "message": "Deployment successful",
+  "blobPath": {
+    "folderName": "repo-abc123",
+    "subdomain": "my-app",
+    "url": "https://my-app.rudrax.me",
+    "webhookToken": "a1b2c3d4e5f6...",
+    "webhookUrl": "https://your-domain.com/api/git/webhook/a1b2c3d4e5f6..."
+  }
+}
+```
+
+### Add Webhook to GitHub
+
 1. Go to your GitHub repository
 2. Navigate to **Settings** → **Webhooks** → **Add webhook**
 3. Configure the webhook:
-   - **Payload URL**: `https://hostify-be.onrender.com/int/api/v1/webhook/gh`
-     - Or replace with your actual domain or ngrok URL for local dev
+   - **Payload URL**: Use the `webhookUrl` from your deployment response
+     - Example: `https://your-domain.com/api/git/webhook/a1b2c3d4e5f6...`
    - **Content type**: `application/json`
-   - **Secret**: Paste the `GITHUB_WEBHOOK_SECRET` you generated
+   - **Secret**: Leave this blank (not needed with token-based auth)
    - **Which events**: Select "Just the push event"
    - **Active**: ✅ Check this box
 4. Click **Add webhook**
+
+### Security Benefits
+
+- ✅ **Unique per project**: Each project has its own token
+- ✅ **No shared secrets**: Can't accidentally trigger other projects
+- ✅ **Easy revocation**: Delete project to revoke webhook access
+- ✅ **URL-based auth**: Token is in the URL, no signature computation needed
 
 ## Step 4: Test the Setup
 
@@ -115,16 +150,14 @@ This creates the subdomain mapping in Cloudflare KV.
 
    ```
    📥 GitHub webhook received: push
+   ✅ Authenticated webhook for project: my-app
    🔔 Push detected:
       Repository: https://github.com/username/repo.git
       Branch: main
       Pusher: your-username
       Commits: 1
-   🚀 Triggering redeployment for 1 project(s)...
-      → Redeploying: my-app
+   🚀 Triggering redeployment for project: my-app
       ✅ Successfully redeployed: https://my-app.rudrax.me
-
-   ✅ Redeployment complete: 1 succeeded, 0 failed
    ```
 
 ### Verify Webhook Delivery in GitHub
@@ -140,7 +173,7 @@ This creates the subdomain mapping in Cloudflare KV.
 
 ### Data Storage in Cloudflare KV
 
-When you deploy a project, three keys are stored:
+When you deploy a project, four keys are stored:
 
 1. **`subdomain`** → `folderName` (e.g., `my-app` → `repo-abc123`)
 2. **`metadata:subdomain`** → Full project metadata JSON:
@@ -150,12 +183,17 @@ When you deploy a project, three keys are stored:
      "folderName": "repo-abc123",
      "repoUrl": "https://github.com/username/repo.git",
      "createdAt": "2026-03-08T10:00:00.000Z",
-     "lastDeployedAt": "2026-03-08T10:00:00.000Z"
+     "lastDeployedAt": "2026-03-08T10:00:00.000Z",
+     "webhookToken": "a1b2c3d4e5f6..."
    }
    ```
 3. **`repo:{repoUrl}`** → Array of subdomains using this repo:
    ```json
    ["my-app", "my-app-staging", "my-app-dev"]
+   ```
+4. **`webhook-token:{token}`** → Subdomain for fast lookup:
+   ```
+   "my-app"
    ```
 
 ### Webhook Flow
@@ -163,13 +201,15 @@ When you deploy a project, three keys are stored:
 ```
 GitHub Push
     ↓
-Webhook triggered
+Webhook triggered with unique URL
     ↓
-Verify signature (security)
+Extract token from URL
     ↓
-Look up projects using repo URL (from Cloudflare KV)
+Lookup project by token (from Cloudflare KV)
     ↓
-For each project:
+Verify repository matches
+    ↓
+Redeploy project:
     ├── Clone repository
     ├── Upload to Azure Storage
     ├── Update Cloudflare KV metadata
@@ -180,13 +220,15 @@ Send response to GitHub
 
 ### Security
 
-- **Signature Verification**: GitHub signs each webhook request with your secret
-- **Constant-Time Comparison**: Prevents timing attacks
+- **Token-Based Auth**: Each project has a unique 64-character hex token
+- **URL Isolation**: Tokens are cryptographically random (256-bit entropy)
+- **No Shared Secrets**: Can't accidentally trigger other users' deployments
+- **Repository Verification**: Webhook must match the project's configured repo
 - **HTTPS Required**: Webhooks only work over HTTPS in production
 
 ## Multiple Projects from Same Repo
 
-You can deploy the same repository multiple times with different subdomains:
+You can deploy the same repository multiple times with different subdomains. **Each deployment gets its own unique webhook URL**:
 
 ```bash
 # Production
@@ -196,6 +238,7 @@ curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
     "ghlink": "https://github.com/username/repo",
     "subdomain": "my-app"
   }'
+# Returns: webhookUrl: https://your-domain.com/api/git/webhook/token1...
 
 # Staging
 curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
@@ -204,15 +247,38 @@ curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
     "ghlink": "https://github.com/username/repo",
     "subdomain": "my-app-staging"
   }'
+# Returns: webhookUrl: https://your-domain.com/api/git/webhook/token2...
+```
+
+### Setting Up Multiple Webhooks
+
+You can add multiple webhooks to the same GitHub repository, each triggering a different deployment:
+
+1. Add webhook for production (use token1 URL)
+2. Add webhook for staging (use token2 URL)
+3. Both webhooks trigger on push, but deploy to different subdomains
+
+**Tip**: Use GitHub's webhook filtering to trigger different environments based on branch:
+
+- Production webhook: Only trigger on `main` branch
+- Staging webhook: Only trigger on `develop` branch
+  curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+   -H "Content-Type: application/json" \
+   -d '{
+  "ghlink": "https://github.com/username/repo",
+  "subdomain": "my-app-staging"
+  }'
 
 # Development
+
 curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ghlink": "https://github.com/username/repo",
-    "subdomain": "my-app-dev"
-  }'
-```
+ -H "Content-Type: application/json" \
+ -d '{
+"ghlink": "https://github.com/username/repo",
+"subdomain": "my-app-dev"
+}'
+
+````
 
 When you push to GitHub, **all three projects will redeploy automatically**.
 
@@ -246,7 +312,7 @@ When you push to GitHub, **all three projects will redeploy automatically**.
     "failed": 0
   }
 }
-```
+````
 
 ## Troubleshooting
 

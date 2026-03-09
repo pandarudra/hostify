@@ -7,7 +7,7 @@
  *   node test-webhook.js <backend-url> <repo-url> [webhook-secret]
  *
  * Example:
- *   node test-webhook.js http://localhost:3000 https://github.com/username/repo.git mywebhooksecret
+ *   node test-webhook.js http://localhost:8000 https://github.com/username/repo.git mywebhooksecret
  */
 
 import crypto from "crypto";
@@ -19,7 +19,7 @@ if (args.length < 2) {
     "Usage: node test-webhook.js <backend-url> <repo-url> [webhook-secret]",
   );
   console.error(
-    "Example: node test-webhook.js http://localhost:3000 https://github.com/username/repo.git mywebhooksecret",
+    "Example: node test-webhook.js http://localhost:8000 https://github.com/username/repo.git mywebhooksecret",
   );
   process.exit(1);
 }

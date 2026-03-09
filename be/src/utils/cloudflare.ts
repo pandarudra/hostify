@@ -121,6 +121,7 @@ export interface ProjectMetadata {
   branch?: string;
   createdAt: string;
   lastDeployedAt: string;
+  webhookToken?: string; // Unique token for webhook authentication
 }
 
 /**
@@ -265,6 +266,90 @@ export async function getSubdomainsByRepo(repoUrl: string): Promise<string[]> {
   } catch (error) {
     console.error("Error parsing repo subdomains:", error);
     return [];
+  }
+}
+
+/**
+ * Get project metadata by webhook token
+ */
+export async function getProjectByWebhookToken(
+  token: string,
+): Promise<ProjectMetadata | null> {
+  if (!isCloudflareConfigured()) {
+    console.warn("⚠️  Cloudflare KV credentials not configured.");
+    return null;
+  }
+
+  const tokenKey = `webhook-token:${token}`;
+  const data = await getKVValue(tokenKey);
+
+  if (!data) {
+    return null;
+  }
+
+  try {
+    // The token key stores the subdomain, fetch full metadata
+    const subdomain = data;
+    return await getProjectMetadata(subdomain);
+  } catch (error) {
+    console.error("Error retrieving project by webhook token:", error);
+    return null;
+  }
+}
+
+/**
+ * Save webhook token mapping to KV
+ * Stores token -> subdomain for quick lookup
+ */
+export async function saveWebhookToken(
+  token: string,
+  subdomain: string,
+): Promise<boolean> {
+  if (!isCloudflareConfigured()) {
+    if (isProd) {
+      throw new Error(
+        "Cloudflare credentials not configured. Required for production.",
+      );
+    }
+    console.warn(
+      "⚠️  Cloudflare KV credentials not configured. Skipping webhook token storage.",
+    );
+    return false;
+  }
+
+  const accountId = CF_ACCOUNT_ID;
+  const namespaceId = CF_KV_NAMESPACE_ID;
+  const apiToken = CF_API_TOKEN;
+
+  try {
+    const tokenKey = `webhook-token:${token}`;
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}/values/${tokenKey}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "text/plain",
+        },
+        body: subdomain,
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Failed to save webhook token: ${error}`);
+    }
+
+    console.log(`✓ Webhook token saved for subdomain '${subdomain}'`);
+    return true;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (isProd) {
+      throw error;
+    } else {
+      console.warn(`⚠️  Cloudflare KV error (non-blocking): ${errorMessage}`);
+      return false;
+    }
   }
 }
 

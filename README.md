@@ -2,8 +2,26 @@
 
 A Node.js backend service that automatically deploys static websites from GitHub repositories to Azure Blob Storage with static website hosting.
 
+## ✨ NEW: GitHub OAuth Authentication
+
+**Now with one-click deployment!** Users can:
+
+- 🔐 Login with GitHub OAuth
+- 📦 Browse all their repositories
+- 🚀 Deploy with a single click (no manual tokens!)
+- 🔄 Automatic webhook creation
+- 📊 Manage all deployments from dashboard
+
+👉 **[Get Started with OAuth →](docs/OAUTH_IMPLEMENTATION.md)**
+
+---
+
 ## 🚀 Features
 
+- **🆕 GitHub OAuth Login**: One-click authentication and deployment
+- **🆕 Repository Browser**: See and deploy all your GitHub repos
+- **🆕 Automatic Webhooks**: Webhooks created automatically on deploy
+- **🆕 Deployment Dashboard**: Track and manage all your deployments
 - **Auto-Redeploy on Push**: Automatically redeploys when you push to GitHub (like Vercel/Netlify)
 - **GitHub Webhook Integration**: Secure webhook endpoint with signature verification
 - **Custom Subdomain Support**: Set your own subdomain or use the default folder name
@@ -307,7 +325,7 @@ cd be
 node test/test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-webhook-secret
 
 # Or test locally
-node test/test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-webhook-secret
+node test/test-webhook.js http://localhost:8000 https://github.com/username/repo.git your-webhook-secret
 ```
 
 **Or use the automated test script:**

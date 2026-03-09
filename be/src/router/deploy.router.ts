@@ -1,21 +1,33 @@
 import { Router } from "express";
-import { deploy } from "../controllers/deploy.controllers.js";
+import {
+  deployWithAuth,
+  deployLegacy,
+} from "../controllers/deploy.controllers.js";
+import { authenticate } from "../utils/jwt.js";
 
 export const deployRouter = Router();
+
+// New authenticated deploy endpoint (recommended)
+deployRouter.post("/", authenticate, deployWithAuth);
+
+// Legacy endpoint for backwards compatibility
+deployRouter.post("/legacy", deployLegacy);
 
 /**
  * @swagger
  * /api/v1/deploy:
  *   post:
- *     summary: Deploy a GitHub repository
- *     description: Clones a GitHub repository, uploads it to Azure Blob Storage, and creates a custom subdomain mapping in Cloudflare KV
+ *     summary: Deploy a GitHub repository (authenticated)
+ *     description: Clones a GitHub repository, uploads it to Azure Blob Storage, creates webhook automatically
  *     tags: [Deployment]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/DeployRequest'
+ *             $ref: '#/components/schemas/DeployRequestAuth'
  *           examples:
  *             withSubdomain:
  *               summary: Deploy with custom subdomain
@@ -40,4 +52,5 @@ export const deployRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/DeployErrorResponse'
  */
-deployRouter.post("/deploy", deploy);
+// Legacy swagger docs kept for reference
+deployRouter.post("/deploy", deployLegacy);

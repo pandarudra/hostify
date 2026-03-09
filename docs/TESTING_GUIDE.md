@@ -27,7 +27,7 @@ curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
 **Using Local Development:**
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/tusharnankani/ToDoList.git",
@@ -78,7 +78,7 @@ node test/test-webhook.js https://hostify-be.onrender.com https://github.com/tus
 
 ```bash
 cd /home/rudra/Desktop/hostify/be
-node test/test-webhook.js http://localhost:3000 https://github.com/tusharnankani/ToDoList.git your_webhook_secret
+node test/test-webhook.js http://localhost:8000 https://github.com/tusharnankani/ToDoList.git your_webhook_secret
 ```
 
 Replace `your_webhook_secret` with your actual `GITHUB_WEBHOOK_SECRET` from `.env`

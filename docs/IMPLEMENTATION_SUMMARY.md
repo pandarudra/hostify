@@ -70,7 +70,7 @@ Created a test script to simulate GitHub webhooks:
 node test/test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-secret
 
 # Or test locally
-node test/test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-secret
+node test/test-webhook.js http://localhost:8000 https://github.com/username/repo.git your-secret
 ```
 
 ## How to Use It
@@ -101,7 +101,7 @@ curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   }'
 
 # Or local development
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/username/repo",
@@ -208,7 +208,7 @@ cd be
 node test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-secret
 
 # Or test locally
-node test-webhook.js http://localhost:3000 https://github.com/username/repo.git your-secret
+node test-webhook.js http://localhost:8000 https://github.com/username/repo.git your-secret
 ```
 
 ### Test with ngrok (for GitHub webhooks in development)
@@ -218,7 +218,7 @@ node test-webhook.js http://localhost:3000 https://github.com/username/repo.git 
 npm run dev
 
 # In another terminal
-ngrok http 3000
+ngrok http 8000
 
 # Use the ngrok URL in GitHub webhook settings
 # Example: https://abc123.ngrok.io/int/api/v1/webhook/gh

@@ -94,7 +94,7 @@ Test 3: Testing webhook simulation...
 ### Error: "Backend is not accessible"
 
 - For production: Check if https://hostify-be.onrender.com is running
-- For local: Make sure your local server is running on port 3000
+- For local: Make sure your local server is running on port 8000
 
 ### Error: "test-webhook.js not found"
 

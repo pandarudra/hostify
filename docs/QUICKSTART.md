@@ -36,7 +36,7 @@ curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
   }'
 
 # Or for local development
-curl -X POST http://localhost:3000/api/v1/deploy \
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/YOUR_USERNAME/YOUR_REPO",
@@ -55,7 +55,7 @@ Replace `YOUR_USERNAME` and `YOUR_REPO` with your actual values.
 **For Local Development:** Use ngrok:
 
 ```bash
-ngrok http 3000
+ngrok http 8000
 ```
 
 Copy the HTTPS URL (e.g., `https://abc123.ngrok.io`)
@@ -140,7 +140,7 @@ cd be
 node test/test-webhook.js https://hostify-be.onrender.com https://github.com/user/repo.git your-secret
 
 # Or test locally
-node test/test-webhook.js http://localhost:3000 https://github.com/user/repo.git your-secret
+node test/test-webhook.js http://localhost:8000 https://github.com/user/repo.git your-secret
 ```
 
 ### View Webhook Logs

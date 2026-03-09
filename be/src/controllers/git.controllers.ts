@@ -1,84 +1,43 @@
 import type { Request, Response } from "express";
-import crypto from "crypto";
 import { uploadtoServer } from "../helpers/upload.js";
 import {
-  getSubdomainsByRepo,
-  getProjectMetadata,
+  getProjectByWebhookToken,
   saveProjectMetadata,
 } from "../utils/cloudflare.js";
-import { GITHUB_WEBHOOK_SECRET } from "../constants/e.js";
-
-/**
- * Verify GitHub webhook signature for security
- */
-function verifyGitHubSignature(
-  payload: string,
-  signature: string | undefined,
-): boolean {
-  if (!signature) {
-    console.warn("⚠️  No signature provided in webhook request");
-    return false;
-  }
-
-  // GitHub sends signature in format: sha256=<hash>
-  const parts = signature.split("=");
-  if (parts.length !== 2) {
-    console.warn(`⚠️  Invalid signature format: ${signature}`);
-    return false;
-  }
-
-  const sigHashAlg = parts[0];
-  const sigHash = parts[1];
-
-  if (!sigHash) {
-    console.warn("⚠️  No hash found in signature");
-    return false;
-  }
-
-  if (sigHashAlg !== "sha256") {
-    console.warn(`⚠️  Unsupported hash algorithm: ${sigHashAlg}`);
-    return false;
-  }
-
-  // If no secret is configured, skip verification (in development)
-  if (!GITHUB_WEBHOOK_SECRET) {
-    console.warn(
-      "⚠️  GITHUB_WEBHOOK_SECRET not configured. Skipping signature verification (unsafe for production!)",
-    );
-    return true;
-  }
-
-  // Calculate expected signature
-  const hmac = crypto.createHmac("sha256", GITHUB_WEBHOOK_SECRET);
-  const digest = hmac.update(payload).digest("hex");
-
-  // Constant-time comparison to prevent timing attacks
-  return crypto.timingSafeEqual(Buffer.from(sigHash), Buffer.from(digest));
-}
 
 /**
  * GitHub webhook handler for auto-redeploy on push events
+ * Uses token-based authentication - each project gets a unique webhook URL
  */
 export const githubWebhook = async (
   req: Request,
   res: Response,
 ): Promise<any> => {
   try {
-    // Get raw body for signature verification
-    const signature = req.headers["x-hub-signature-256"] as string | undefined;
+    const webhookToken = req.params.token as string;
     const githubEvent = req.headers["x-github-event"] as string | undefined;
 
     console.log(`📥 GitHub webhook received: ${githubEvent}`);
 
-    // Verify webhook signature
-    const rawBody = JSON.stringify(req.body);
-    if (!verifyGitHubSignature(rawBody, signature)) {
-      console.error("❌ Invalid webhook signature");
+    // Verify webhook token and get project
+    if (!webhookToken) {
+      console.error("❌ No webhook token provided");
       return res.status(401).json({
         success: false,
-        message: "Invalid signature",
+        message: "No webhook token provided",
       });
     }
+
+    const project = await getProjectByWebhookToken(webhookToken);
+    if (!project) {
+      console.error("❌ Invalid webhook token");
+      return res.status(401).json({
+        success: false,
+        message: "Invalid webhook token",
+      });
+    }
+
+    console.log(`✅ Authenticated webhook for project: ${project.subdomain}`);
 
     // Validate payload
     if (!req.body || !req.body.repository) {
@@ -110,91 +69,57 @@ export const githubWebhook = async (
     console.log(`   Pusher: ${pusher}`);
     console.log(`   Commits: ${commits}`);
 
-    // Find all projects associated with this repository
-    const subdomains = await getSubdomainsByRepo(repoUrl);
-
-    if (subdomains.length === 0) {
-      console.log(`ℹ️  No deployments found for repository: ${repoUrl}`);
-      return res.status(200).json({
-        success: true,
-        message: "No deployments found for this repository",
-        repoUrl,
+    // Verify the webhook is for the correct repository
+    if (project.repoUrl !== repoUrl) {
+      console.warn(
+        `⚠️  Repository mismatch. Expected ${project.repoUrl}, got ${repoUrl}`,
+      );
+      return res.status(400).json({
+        success: false,
+        message: "Repository mismatch",
+        expected: project.repoUrl,
+        received: repoUrl,
       });
     }
 
-    console.log(
-      `🚀 Triggering redeployment for ${subdomains.length} project(s)...`,
-    );
+    console.log(`🚀 Triggering redeployment for project: ${project.subdomain}`);
 
-    // Redeploy each project
-    const results = [];
-    for (const subdomain of subdomains) {
-      try {
-        console.log(`   → Redeploying: ${subdomain}`);
+    try {
+      // Trigger redeployment with existing subdomain
+      const result = await uploadtoServer(repoUrl, project.subdomain);
 
-        // Get existing project metadata
-        const metadata = await getProjectMetadata(subdomain);
-        if (!metadata) {
-          console.warn(`   ⚠️  No metadata found for ${subdomain}, skipping`);
-          results.push({
-            subdomain,
-            success: false,
-            error: "Metadata not found",
-          });
-          continue;
-        }
+      // Update lastDeployedAt timestamp (preserve existing webhookToken)
+      await saveProjectMetadata({
+        ...project,
+        lastDeployedAt: new Date().toISOString(),
+      });
 
-        // Trigger redeployment with existing subdomain
-        const result = await uploadtoServer(repoUrl, subdomain);
+      console.log(`   ✅ Successfully redeployed: ${result.url}`);
 
-        // Update lastDeployedAt timestamp
-        await saveProjectMetadata({
-          ...metadata,
-          lastDeployedAt: new Date().toISOString(),
-        });
-
-        console.log(`   ✅ Successfully redeployed: ${result.url}`);
-
-        results.push({
-          subdomain,
-          success: true,
-          url: result.url,
-          folderName: result.folderName,
-        });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        console.error(`   ❌ Failed to redeploy ${subdomain}:`, errorMessage);
-        results.push({
-          subdomain,
-          success: false,
-          error: errorMessage,
-        });
-      }
+      return res.status(200).json({
+        success: true,
+        message: "Auto-redeploy triggered",
+        repoUrl,
+        branch,
+        pusher,
+        commits,
+        subdomain: project.subdomain,
+        url: result.url,
+        folderName: result.folderName,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.error(
+        `❌ Failed to redeploy ${project.subdomain}:`,
+        errorMessage,
+      );
+      return res.status(500).json({
+        success: false,
+        message: "Redeployment failed",
+        error: errorMessage,
+      });
     }
-
-    // Summarize results
-    const successful = results.filter((r) => r.success).length;
-    const failed = results.filter((r) => !r.success).length;
-
-    console.log(
-      `\n✅ Redeployment complete: ${successful} succeeded, ${failed} failed\n`,
-    );
-
-    return res.status(200).json({
-      success: true,
-      message: "Auto-redeploy triggered",
-      repoUrl,
-      branch,
-      pusher,
-      commits,
-      results,
-      summary: {
-        total: results.length,
-        successful,
-        failed,
-      },
-    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error("❌ Error processing webhook:", errorMessage);
