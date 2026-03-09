@@ -57,17 +57,17 @@ const execServer = async () => {
     res.send(welcomeHtml);
   });
 
+  // Webhook routes (MUST be before /api router to avoid auth middleware)
+  app.use("/api/git", router.gitRouter);
+
   // Authentication routes (new)
   app.use("/api/auth", router.authRouter);
-
-  // Repository and deployment management routes (new, protected)
-  app.use("/api", router.repoRouter);
 
   // Deployment routes (with authentication)
   app.use("/api/v1/deploy", router.deployRouter);
 
-  // Webhook routes (internal)
-  app.use("/api/git", router.gitRouter);
+  // Repository and deployment management routes (new, protected)
+  app.use("/api", router.repoRouter);
 
   // API Documentation
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
