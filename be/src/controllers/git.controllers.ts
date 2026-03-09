@@ -88,9 +88,10 @@ export const githubWebhook = async (
       // Trigger redeployment with existing subdomain
       const result = await uploadtoServer(repoUrl, project.subdomain);
 
-      // Update lastDeployedAt timestamp (preserve existing webhookToken)
+      // Update metadata with new folder name and timestamp (preserve webhookToken)
       await saveProjectMetadata({
         ...project,
+        folderName: result.folderName, // ✅ Update to new folder name
         lastDeployedAt: new Date().toISOString(),
       });
 
