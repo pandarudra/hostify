@@ -1,16 +1,16 @@
-import { PUBLIC_API_URL, PUBLIC_PROD_API_URL, PUBLIC_ENV } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 
 /**
  * Environment configuration
  * Centralized environment variables for the application
  */
 
-// Environment type
-export const ENV = PUBLIC_ENV as 'local' | 'production';
+// Environment type with fallback
+export const ENV = (env.PUBLIC_ENV || 'production') as 'local' | 'production';
 
-// API URLs
-export const API_URL_LOCAL = PUBLIC_API_URL;
-export const API_URL_PROD = PUBLIC_PROD_API_URL;
+// API URLs with fallbacks
+export const API_URL_LOCAL = env.PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL_PROD = env.PUBLIC_PROD_API_URL || 'https://hostify-be.onrender.com';
 
 // Active API URL based on environment
 export const API_URL = ENV === 'production' ? API_URL_PROD : API_URL_LOCAL;
