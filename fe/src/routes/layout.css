@@ -1,3 +1,29 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+/* Custom font family */
+* {
+	font-family:
+		'Ubuntu Sans',
+		system-ui,
+		-apple-system,
+		sans-serif;
+}
+
+/* Custom utilities for cartoon style */
+.border-3 {
+	border-width: 3px;
+}
+
+.cartoon-shadow {
+	box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+.cartoon-shadow-lg {
+	box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.25);
+}
+
+.cartoon-shadow-sm {
+	box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+}
