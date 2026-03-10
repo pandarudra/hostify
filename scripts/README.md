@@ -67,3 +67,59 @@ Cleans up local temporary files and directories.
 ```bash
 ./scripts/cleanlocal.sh
 ```
+
+---
+
+## setup-frontend.sh
+
+Automated script to set up the SvelteKit frontend for Hostify.
+
+### What it does
+
+- Creates a new SvelteKit project with TypeScript
+- Installs all required dependencies (Tailwind CSS, Axios, Lucide icons, etc.)
+- Sets up Tailwind CSS configuration
+- Creates the recommended directory structure
+- Generates a `.env` file with default configuration
+
+### Usage
+
+```bash
+cd scripts
+./setup-frontend.sh
+```
+
+### After running the script
+
+1. Follow the comprehensive guide at [docs/FRONTEND_BUILD_GUIDE.md](../docs/FRONTEND_BUILD_GUIDE.md)
+2. Create the necessary files as outlined in the guide:
+   - Components (Header, Footer, RepoCard, etc.)
+   - Services (API client, auth, deploy, repo services)
+   - Stores (auth store)
+   - Pages (Login, Dashboard, Repositories, Deployments)
+   - Type definitions
+3. Start the development server:
+   ```bash
+   cd fe
+   npm run dev
+   ```
+4. Visit `http://localhost:5173` to see your frontend
+
+### Prerequisites
+
+- Node.js v18 or higher
+- npm or yarn
+- Running Hostify backend at `http://localhost:8000`
+
+### Configuration
+
+Edit `fe/.env` to change API endpoints:
+
+```env
+PUBLIC_API_BASE_URL=http://localhost:8000
+PUBLIC_FRONTEND_URL=http://localhost:5173
+```
+
+For production, update these to your production URLs.
+
+---
