@@ -4,15 +4,20 @@
 	import { requireAuth } from '$lib/utils/routeGuard';
 	import { onMount } from 'svelte';
 	import Link from './Link.svelte';
+	import { ROUTES } from '$lib/routes';
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let user: any = null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let deployments: any[] = [];
 	let loading = true;
 	let deploymentsLoading = true;
 	let selectedRepo: { name: string; fullName: string; url: string } | null = null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let selectedRepoDeployments: any[] = [];
 
 	// Group deployments by repository
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	$: groupedDeployments = deployments.reduce((acc: any, deployment: any) => {
 		const repoUrl = deployment.repoUrl;
 		if (!acc[repoUrl]) {
@@ -30,6 +35,8 @@
 		acc[repoUrl].deployments.push(deployment);
 		acc[repoUrl].totalCount++;
 
+		console.log(deployments);
+
 		if (deployment.status === 'deployed') acc[repoUrl].liveCount++;
 		else if (deployment.status === 'failed') acc[repoUrl].failedCount++;
 		else if (deployment.status === 'deploying') acc[repoUrl].deployingCount++;
@@ -41,6 +48,7 @@
 		repoUrl: string;
 		repoName: string;
 		fullName: string;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		deployments: any[];
 		totalCount: number;
 		liveCount: number;
@@ -111,7 +119,7 @@
 			window.location.href = '/';
 		}
 	}
-
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function openRepoModal(repo: any) {
 		selectedRepo = {
 			name: repo.repoName,
@@ -132,14 +140,14 @@
 	<header class="border-b-3 border-slate-800 bg-sky-50">
 		<div class="container mx-auto max-w-7xl px-6 py-4">
 			<div class="flex items-center justify-between">
-				<a
+				<Link
 					href="/dash"
-					class="text-3xl font-black text-slate-800"
+					className="text-3xl font-black text-slate-800"
 					style="font-family: 'Bitcount Prop Double', sans-serif;"
 					data-sveltekit-reload="off"
 				>
 					Hostify
-				</a>
+				</Link>
 
 				{#if user}
 					<div class="flex items-center gap-4">
@@ -184,7 +192,7 @@
 			<!-- Deploy New Site Button -->
 			<div class="mb-12">
 				<Link
-					href="/deploy"
+					href={ROUTES.deploy}
 					className="cartoon-shadow hover:cartoon-shadow-lg inline-block rounded-none border-3 border-slate-800 bg-sky-500 px-8 py-4 text-center transition-all duration-200 hover:-translate-x-1 hover:-translate-y-1"
 				>
 					<i class="fa-solid fa-rocket mr-2 text-2xl text-white"></i>
@@ -213,7 +221,7 @@
 							Get started by deploying your first repository!
 						</p>
 						<Link
-							href="/deploy"
+							href={ROUTES.deploy}
 							className="cartoon-shadow hover:cartoon-shadow-lg inline-block rounded-none border-3 border-slate-800 bg-sky-500 px-6 py-3 font-bold text-white transition-all duration-200 hover:-translate-x-1 hover:-translate-y-1"
 						>
 							<i class="fa-solid fa-rocket mr-2"></i>
@@ -324,7 +332,7 @@
 									<div class="flex-1">
 										<div class="mb-2 flex items-center gap-3">
 											<h4 class="text-lg font-bold text-slate-800">
-												{deployment.subdomain}.hostify.dev
+												{deployment.subdomain}.rudrax.me
 											</h4>
 											<span
 												class={`rounded-none border-2 border-slate-800 px-2 py-1 text-xs font-bold ${

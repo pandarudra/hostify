@@ -2,10 +2,14 @@ import { Router } from "express";
 import {
   deployWithAuth,
   deployLegacy,
+  checkSubdomainAvailability,
 } from "../controllers/deploy.controllers.js";
 import { authenticate } from "../utils/jwt.js";
 
 export const deployRouter = Router();
+
+// Check subdomain availability
+deployRouter.get("/check-subdomain", authenticate, checkSubdomainAvailability);
 
 // New authenticated deploy endpoint (recommended)
 deployRouter.post("/", authenticate, deployWithAuth);

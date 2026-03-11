@@ -4,6 +4,7 @@
 	import { API_ENDPOINTS } from '$lib/constants/api';
 	import { getAuthHeaders } from '$lib/constants/helpers';
 	import Link from '$lib/components/Link.svelte';
+	import SubdomainModal from '$lib/components/SubdomainModal.svelte';
 
 	let repositories: any[] = [];
 	let filteredRepos: any[] = [];
@@ -14,6 +15,8 @@
 	let selectedRepo: any = null;
 	let repoDeployments: any[] = [];
 	let loadingDeployments = false;
+	let showSubdomainModal = false;
+	let repoToDeploy: any = null;
 	const MAX_SUGGESTIONS = 6;
 
 	// Reactive search filtering - automatically updates when searchQuery or repositories change
@@ -25,7 +28,7 @@
 			const filtered = repositories.filter(
 				(repo) =>
 					repo.name.toLowerCase().includes(query) ||
-					repo.full_name.toLowerCase().includes(query) ||
+					repo.fullName.toLowerCase().includes(query) ||
 					repo.description?.toLowerCase().includes(query)
 			);
 			return filtered.slice(0, MAX_SUGGESTIONS);
@@ -70,9 +73,9 @@
 				// Filter deployments for this specific repo
 				repoDeployments = allDeployments.filter(
 					(d: any) =>
-						d.repoUrl === repo.html_url ||
-						d.repoUrl === repo.clone_url ||
-						d.repoUrl.includes(repo.full_name)
+						d.repoUrl === repo.htmlUrl ||
+						d.repoUrl === repo.cloneUrl ||
+						d.repoUrl.includes(repo.fullName)
 				);
 			}
 		} catch (error) {
@@ -87,11 +90,30 @@
 		repoDeployments = [];
 	}
 
-	async function handleDeploy(repo: any) {
+	function handleDeploy(repo: any) {
+		// Store the repo and show subdomain modal
+		repoToDeploy = repo;
+		showSubdomainModal = true;
+	}
+
+	function handleSubdomainCancel() {
+		showSubdomainModal = false;
+		repoToDeploy = null;
+	}
+
+	async function handleSubdomainConfirm(subdomain: string) {
+		showSubdomainModal = false;
+
+		if (!repoToDeploy) return;
+
 		deploying = true;
 		deploymentResult = null;
 
 		try {
+			console.log('Deploying repo:', repoToDeploy);
+			console.log('Repo URL:', repoToDeploy.htmlUrl);
+			console.log('Subdomain:', subdomain);
+
 			const response = await fetch(API_ENDPOINTS.deploy.create, {
 				method: 'POST',
 				headers: {
@@ -99,18 +121,20 @@
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
-					repoUrl: repo.html_url,
-					subdomain: repo.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+					repoUrl: repoToDeploy.cloneUrl,
+					subdomain: subdomain
 				})
 			});
 
 			const data = await response.json();
 
+			console.log(data);
+
 			if (response.ok) {
 				deploymentResult = {
 					success: true,
 					message: 'Deployment started successfully!',
-					url: data.deploymentUrl || data.deployment?.deploymentUrl
+					url: data.deployment?.url
 				};
 
 				// If modal is open, refresh the deployments list
@@ -120,7 +144,7 @@
 			} else {
 				deploymentResult = {
 					success: false,
-					message: data.error || 'Failed to deploy repository'
+					message: data.error || data.message || 'Failed to deploy repository'
 				};
 			}
 		} catch (error) {
@@ -131,6 +155,7 @@
 			};
 		} finally {
 			deploying = false;
+			repoToDeploy = null;
 		}
 	}
 </script>
@@ -140,13 +165,9 @@
 	<header class="border-b-3 border-slate-800 bg-sky-50">
 		<div class="container mx-auto max-w-7xl px-6 py-4">
 			<div class="flex items-center justify-between">
-				<a
-					href="/dash"
-					class="text-3xl font-black text-slate-800"
-					style="font-family: 'Bitcount Prop Double', sans-serif;"
-				>
-					Hostify
-				</a>
+				<Link href="/dash" className="text-3xl font-black text-slate-800">
+					<span style="font-family: 'Bitcount Prop Double', sans-serif;">Hostify</span>
+				</Link>
 				<Link
 					href="/dash"
 					className="cartoon-shadow hover:cartoon-shadow-lg rounded-none border-2 border-slate-800 bg-white px-4 py-2 font-bold text-slate-800 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
@@ -265,7 +286,7 @@
 									<i class="fa-brands fa-github mr-2"></i>
 									{repo.name}
 								</h3>
-								<p class="mb-2 text-sm text-slate-500">{repo.full_name}</p>
+								<p class="mb-2 text-sm text-slate-500">{repo.fullName}</p>
 								{#if repo.description}
 									<p class="mb-3 text-slate-600">{repo.description}</p>
 								{/if}
@@ -276,21 +297,15 @@
 											{repo.language}
 										</span>
 									{/if}
-									{#if repo.stargazers_count > 0}
+									{#if repo.stars > 0}
 										<span class="flex items-center gap-1">
 											<i class="fa-solid fa-star"></i>
-											{repo.stargazers_count}
-										</span>
-									{/if}
-									{#if repo.forks_count > 0}
-										<span class="flex items-center gap-1">
-											<i class="fa-solid fa-code-branch"></i>
-											{repo.forks_count}
+											{repo.stars}
 										</span>
 									{/if}
 									<span class="flex items-center gap-1">
-										<i class="fa-solid fa-lock{repo.private ? '' : '-open'}"></i>
-										{repo.private ? 'Private' : 'Public'}
+										<i class="fa-solid fa-lock{repo.isPrivate ? '' : '-open'}"></i>
+										{repo.isPrivate ? 'Private' : 'Public'}
 									</span>
 								</div>
 							</div>
@@ -329,7 +344,7 @@
 							<i class="fa-brands fa-github mr-2"></i>
 							{selectedRepo.name}
 						</h2>
-						<p class="text-slate-600">{selectedRepo.full_name}</p>
+						<p class="text-slate-600">{selectedRepo.fullName}</p>
 					</div>
 					<button
 						onclick={closeModal}
@@ -360,7 +375,7 @@
 					<h3 class="mb-4 text-xl font-bold text-slate-800">
 						<i class="fa-solid fa-list mr-2"></i>
 						Existing Deployments
-						<span class="text-sm text-slate-500"> (.hostify.dev is your hosted domain) </span>
+						<span class="text-sm text-slate-500"> (.rudrax.me is your hosted domain) </span>
 					</h3>
 
 					{#if loadingDeployments}
@@ -382,7 +397,7 @@
 										<div class="flex-1">
 											<div class="mb-2 flex items-center gap-3">
 												<h4 class="text-lg font-bold text-slate-800">
-													{deployment.subdomain}.hostify.dev
+													{deployment.subdomain}.rudrax.me
 												</h4>
 												<span
 													class={`rounded-none border-2 border-slate-800 px-2 py-1 text-xs font-bold ${
@@ -425,4 +440,11 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- Subdomain Selection Modal -->
+	<SubdomainModal
+		isOpen={showSubdomainModal}
+		onConfirm={handleSubdomainConfirm}
+		onCancel={handleSubdomainCancel}
+	/>
 </div>

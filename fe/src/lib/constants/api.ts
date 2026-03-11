@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
 	deploy: {
 		list: `${API_URL}/api/deployments`,
 		create: `${API_URL}/api/v1/deploy`,
+		checkSubdomain: `${API_URL}/api/v1/deploy/check-subdomain`,
 		details: (id: string) => `${API_URL}/api/deployments/${id}`,
 		delete: (id: string) => `${API_URL}/api/deployments/${id}`
 	},

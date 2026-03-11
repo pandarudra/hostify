@@ -127,6 +127,62 @@ export const deployWithAuth = async (
 };
 
 /**
+ * Check if subdomain is available
+ */
+export const checkSubdomainAvailability = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    const { subdomain } = req.query;
+
+    if (!subdomain || typeof subdomain !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Subdomain is required",
+      });
+    }
+
+    // Validate subdomain format (lowercase alphanumeric and hyphens only)
+    const subdomainRegex = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+    if (!subdomainRegex.test(subdomain)) {
+      return res.status(400).json({
+        success: false,
+        available: false,
+        message:
+          "Invalid subdomain format. Use lowercase letters, numbers, and hyphens only.",
+      });
+    }
+
+    if (!isDBConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: "Database not connected",
+      });
+    }
+
+    // Check if subdomain exists
+    const existing = await Deployment.findOne({ subdomain });
+
+    return res.status(200).json({
+      success: true,
+      available: !existing,
+      subdomain: subdomain,
+      message: existing
+        ? "Subdomain is already taken"
+        : "Subdomain is available",
+    });
+  } catch (error) {
+    console.error("Check subdomain error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to check subdomain availability",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+/**
  * Legacy deploy endpoint (without authentication)
  * Kept for backwards compatibility
  */
