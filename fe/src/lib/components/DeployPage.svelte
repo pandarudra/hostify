@@ -407,14 +407,14 @@
 												</h4>
 												<span
 													class={`rounded-none border-2 border-slate-800 px-2 py-1 text-xs font-bold ${
-														deployment.status === 'deployed'
+														deployment.status === 'active'
 															? 'bg-green-100 text-green-800'
 															: deployment.status === 'deploying'
 																? 'bg-yellow-100 text-yellow-800'
 																: 'bg-red-100 text-red-800'
 													}`}
 												>
-													{deployment.status === 'deployed'
+													{deployment.status === 'active'
 														? '✓ Live'
 														: deployment.status === 'deploying'
 															? '⏳ Deploying'
@@ -426,7 +426,7 @@
 												Deployed {new Date(deployment.createdAt).toLocaleDateString()}
 											</p>
 										</div>
-										{#if deployment.status === 'deployed'}
+										{#if deployment.status === 'active'}
 											<a
 												href={deployment.deploymentUrl}
 												target="_blank"
