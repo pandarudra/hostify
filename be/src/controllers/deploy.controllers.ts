@@ -18,7 +18,7 @@ export const verifyDeployment = async (
   try {
     const { subdomain: subdomainParam } = req.params;
     const subdomain =
-      typeof subdomainParam === "string" ? subdomainParam : subdomainParam[0];
+      typeof subdomainParam === "string" ? subdomainParam : subdomainParam?.[0];
 
     if (!subdomain) {
       return res.status(400).json({
