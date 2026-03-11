@@ -6,6 +6,74 @@ import { Deployment } from "../models/Deployment.js";
 import { isDBConnected } from "../config/database.js";
 import crypto from "crypto";
 import { createGitHubWebhook } from "../utils/github.js";
+import { getProjectMetadata } from "../utils/cloudflare.js";
+
+/**
+ * Verify deployment status - check if subdomain is properly configured
+ */
+export const verifyDeployment = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    const { subdomain: subdomainParam } = req.params;
+    const subdomain =
+      typeof subdomainParam === "string" ? subdomainParam : subdomainParam[0];
+
+    if (!subdomain) {
+      return res.status(400).json({
+        success: false,
+        message: "Subdomain is required",
+      });
+    }
+
+    if (!isDBConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: "Database not connected",
+      });
+    }
+
+    // Check database
+    const deployment = await Deployment.findOne({ subdomain });
+
+    if (!deployment) {
+      return res.status(404).json({
+        success: false,
+        message: "Deployment not found in database",
+      });
+    }
+
+    // Check Cloudflare KV
+    const metadata = await getProjectMetadata(subdomain);
+
+    return res.status(200).json({
+      success: true,
+      deployment: {
+        subdomain: deployment.subdomain,
+        status: deployment.status,
+        deploymentUrl: deployment.deploymentUrl,
+        createdAt: deployment.createdAt,
+      },
+      cloudflareKV: {
+        configured: !!metadata,
+        metadata: metadata,
+      },
+      diagnosis: {
+        databaseOk: true,
+        cloudflareKvOk: !!metadata,
+        expectedUrl: `https://${subdomain}.rudrax.me`,
+      },
+    });
+  } catch (error) {
+    console.error("Verify deployment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify deployment",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
 
 /**
  * Deploy with authentication - automatic token from logged-in user
@@ -81,6 +149,10 @@ export const deployWithAuth = async (
       githubToken: user.accessToken,
     });
 
+    // Determine deployment status based on success
+    // If upload failed or subdomain wasn't saved, mark as failed
+    const deploymentStatus = result.success === false ? "failed" : "active";
+
     // Save deployment to database
     const deployment = await Deployment.create({
       userId: user._id,
@@ -92,7 +164,7 @@ export const deployWithAuth = async (
       folderName: result.folderName,
       webhookToken: result.webhookToken,
       ...(webhookResult.webhookId && { webhookId: webhookResult.webhookId }),
-      status: "active",
+      status: deploymentStatus,
       deploymentUrl: result.url,
       lastDeployedAt: new Date(),
     });

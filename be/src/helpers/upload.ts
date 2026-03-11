@@ -42,31 +42,48 @@ export const uploadtoServer = async (
 
     let blobPath = localpath;
     let url = "";
+    let uploadSuccess = true;
 
     if (isProd) {
-      // Upload project to Azure
-      blobPath = await uploadDirectoryToBlob(localpath, folderName);
+      try {
+        // Upload project to Azure
+        blobPath = await uploadDirectoryToBlob(localpath, folderName);
 
-      // Save complete project metadata to Cloudflare KV
-      await saveProjectMetadata({
-        subdomain: subdomain,
-        folderName: folderName,
-        repoUrl: ghlink,
-        createdAt: new Date().toISOString(),
-        lastDeployedAt: new Date().toISOString(),
-        webhookToken: webhookToken,
-      });
+        // Save complete project metadata to Cloudflare KV
+        const metadataSaved = await saveProjectMetadata({
+          subdomain: subdomain,
+          folderName: folderName,
+          repoUrl: ghlink,
+          createdAt: new Date().toISOString(),
+          lastDeployedAt: new Date().toISOString(),
+          webhookToken: webhookToken,
+        });
 
-      // Save webhook token mapping for quick lookup
-      await saveWebhookToken(webhookToken, subdomain);
+        // Save webhook token mapping for quick lookup
+        const tokenSaved = await saveWebhookToken(webhookToken, subdomain);
 
-      // Generate public subdomain URL using the subdomain
-      url = `https://${subdomain}.rudrax.me`;
+        // Check if Cloudflare KV operations succeeded
+        if (!metadataSaved || !tokenSaved) {
+          console.error(
+            "⚠️  Cloudflare KV save failed - deployment may not be accessible",
+          );
+          uploadSuccess = false;
+        }
 
-      // Remove local files
-      deleteLocalDirectory(localpath);
+        // Generate public subdomain URL using the subdomain
+        url = `https://${subdomain}.rudrax.me`;
 
-      console.log(`Project deployed: ${url}`);
+        // Remove local files
+        deleteLocalDirectory(localpath);
+
+        console.log(`Project deployed: ${url}`);
+      } catch (uploadError) {
+        console.error("Azure/Cloudflare upload error:", uploadError);
+        uploadSuccess = false;
+        // Clean up local directory even on error
+        deleteLocalDirectory(localpath);
+        throw uploadError;
+      }
     } else {
       // Local development - save to KV if configured (optional)
       await saveProjectMetadata({
@@ -115,6 +132,7 @@ export const uploadtoServer = async (
     }
 
     return {
+      success: uploadSuccess,
       folderName: folderName,
       subdomain: subdomain,
       path: blobPath,

@@ -35,9 +35,7 @@
 		acc[repoUrl].deployments.push(deployment);
 		acc[repoUrl].totalCount++;
 
-		console.log(deployments);
-
-		if (deployment.status === 'deployed') acc[repoUrl].liveCount++;
+		if (deployment.status === 'active') acc[repoUrl].liveCount++;
 		else if (deployment.status === 'failed') acc[repoUrl].failedCount++;
 		else if (deployment.status === 'deploying') acc[repoUrl].deployingCount++;
 
@@ -326,7 +324,7 @@
 					</h3>
 
 					<div class="space-y-3">
-						{#each selectedRepoDeployments as deployment (deployment._id || deployment.subdomain)}
+						{#each selectedRepoDeployments as deployment (deployment.id || deployment.subdomain)}
 							<div class="cartoon-shadow rounded-none border-2 border-slate-800 bg-white p-4">
 								<div class="flex items-center justify-between">
 									<div class="flex-1">
@@ -336,14 +334,14 @@
 											</h4>
 											<span
 												class={`rounded-none border-2 border-slate-800 px-2 py-1 text-xs font-bold ${
-													deployment.status === 'deployed'
+													deployment.status === 'active'
 														? 'bg-green-100 text-green-800'
 														: deployment.status === 'deploying'
 															? 'bg-yellow-100 text-yellow-800'
 															: 'bg-red-100 text-red-800'
 												}`}
 											>
-												{deployment.status === 'deployed'
+												{deployment.status === 'active'
 													? '✓ Live'
 													: deployment.status === 'deploying'
 														? '⏳ Deploying'
@@ -355,7 +353,7 @@
 											Deployed {new Date(deployment.createdAt).toLocaleDateString()}
 										</p>
 									</div>
-									{#if deployment.status === 'deployed'}
+									{#if deployment.status === 'active'}
 										<a
 											href={deployment.deploymentUrl}
 											target="_blank"

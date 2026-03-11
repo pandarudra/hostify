@@ -5,17 +5,22 @@
 	import { getAuthHeaders } from '$lib/constants/helpers';
 	import Link from '$lib/components/Link.svelte';
 	import SubdomainModal from '$lib/components/SubdomainModal.svelte';
-
+	import { resolve } from '$app/paths';
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let repositories: any[] = [];
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let filteredRepos: any[] = [];
 	let searchQuery = '';
 	let loading = true;
 	let deploying = false;
 	let deploymentResult: { success: boolean; message: string; url?: string } | null = null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let selectedRepo: any = null;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let repoDeployments: any[] = [];
 	let loadingDeployments = false;
 	let showSubdomainModal = false;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let repoToDeploy: any = null;
 	const MAX_SUGGESTIONS = 6;
 
@@ -56,7 +61,7 @@
 			loading = false;
 		}
 	});
-
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	async function openRepoModal(repo: any) {
 		selectedRepo = repo;
 		loadingDeployments = true;
@@ -72,6 +77,7 @@
 				const allDeployments = data.deployments || [];
 				// Filter deployments for this specific repo
 				repoDeployments = allDeployments.filter(
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(d: any) =>
 						d.repoUrl === repo.htmlUrl ||
 						d.repoUrl === repo.cloneUrl ||
@@ -89,7 +95,7 @@
 		selectedRepo = null;
 		repoDeployments = [];
 	}
-
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function handleDeploy(repo: any) {
 		// Store the repo and show subdomain modal
 		repoToDeploy = repo;
@@ -211,7 +217,7 @@
 						<p class="mb-4 text-slate-700">{deploymentResult.message}</p>
 						{#if deploymentResult.success && deploymentResult.url}
 							<a
-								href={deploymentResult.url}
+								href={resolve(deploymentResult.url)}
 								target="_blank"
 								rel="noopener noreferrer"
 								class="cartoon-shadow hover:cartoon-shadow-lg inline-block rounded-none border-2 border-slate-800 bg-sky-500 px-4 py-2 font-bold text-white transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"

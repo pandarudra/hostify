@@ -3,6 +3,7 @@ import {
   deployWithAuth,
   deployLegacy,
   checkSubdomainAvailability,
+  verifyDeployment,
 } from "../controllers/deploy.controllers.js";
 import { authenticate } from "../utils/jwt.js";
 
@@ -10,6 +11,9 @@ export const deployRouter = Router();
 
 // Check subdomain availability
 deployRouter.get("/check-subdomain", authenticate, checkSubdomainAvailability);
+
+// Verify deployment status
+deployRouter.get("/verify/:subdomain", authenticate, verifyDeployment);
 
 // New authenticated deploy endpoint (recommended)
 deployRouter.post("/", authenticate, deployWithAuth);
