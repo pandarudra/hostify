@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import { User } from "../src/models/User.js";
-import { Deployment } from "../src/models/Deployment.js";
+import { User } from "../models/User.js";
+import { Deployment } from "../models/Deployment.js";
 import {
   CF_ACCOUNT_ID,
   CF_API_TOKEN,
   CF_KV_NAMESPACE_ID,
-} from "../src/constants/e.js";
+} from "../constants/e.js";
 import readline from "readline";
 
 const MONGODB_URI =
