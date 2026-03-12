@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { API_ENDPOINTS } from '$lib/constants/api';
 	import { clearAuthToken, getAuthHeaders } from '$lib/constants/helpers';
+	import { ENV } from '$lib/constants/env';
 	import { requireAuth } from '$lib/utils/routeGuard';
 	import { onMount } from 'svelte';
 	import Link from './Link.svelte';
@@ -56,23 +57,31 @@
 
 	// Redirect unauthenticated users to auth page
 	onMount(async () => {
-		if (!requireAuth()) {
+		if (ENV !== 'local' && !requireAuth()) {
 			return; // Already redirecting
 		}
 
 		// Fetch current user data
 		try {
-			const response = await fetch(API_ENDPOINTS.auth.me, {
-				headers: getAuthHeaders()
-			});
-
-			if (response.ok) {
-				const data = await response.json();
-				user = data.user;
+			if (ENV === 'local') {
+				user = {
+					username: 'Local Dev',
+					email: 'dev@localhost',
+					avatarUrl: ''
+				};
 			} else {
-				// Token might be invalid, redirect to auth
-				clearAuthToken();
-				window.location.href = '/auth';
+				const response = await fetch(API_ENDPOINTS.auth.me, {
+					headers: getAuthHeaders()
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					user = data.user;
+				} else {
+					// Token might be invalid, redirect to auth
+					clearAuthToken();
+					window.location.href = '/auth';
+				}
 			}
 		} catch (error) {
 			console.error('Failed to fetch user:', error);
@@ -149,19 +158,29 @@
 
 				{#if user}
 					<div class="flex items-center gap-4">
-						<div class="flex items-center gap-3">
+						<Link
+							href={ROUTES.settings}
+							className="cartoon-shadow hover:cartoon-shadow-lg flex items-center gap-3 rounded-none border-3 border-slate-800 bg-white px-3 py-2 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
+							title="Open settings"
+						>
 							{#if user.avatarUrl}
 								<img
 									src={user.avatarUrl}
 									alt={user.username}
 									class="h-10 w-10 rounded-full border-2 border-slate-800"
 								/>
+							{:else}
+								<div
+									class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-800 bg-sky-500 text-lg font-bold text-white"
+								>
+									<i class="fa-solid fa-gear"></i>
+								</div>
 							{/if}
 							<div class="text-left">
 								<p class="font-bold text-slate-800">{user.username}</p>
-								<p class="text-sm text-slate-600">{user.email || 'No email'}</p>
+								<p class="text-sm text-slate-600">Settings & profile</p>
 							</div>
-						</div>
+						</Link>
 						<button
 							onclick={handleLogout}
 							class="cartoon-shadow hover:cartoon-shadow-lg active:cartoon-shadow-sm rounded-none border-3 border-slate-800 bg-white px-4 py-2 font-bold text-slate-800 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-red-50 active:translate-x-0.5 active:translate-y-0.5"

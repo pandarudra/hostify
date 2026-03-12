@@ -1,4 +1,5 @@
 import { isAuthenticated } from '$lib';
+import { ENV } from '$lib/constants/env';
 
 /**
  * Route guard utilities for protecting routes
@@ -12,6 +13,7 @@ import { isAuthenticated } from '$lib';
  * @param redirectTo - Optional custom redirect URL (defaults to '/auth')
  */
 export function requireAuth(redirectTo: string = '/auth'): boolean {
+	if (ENV === 'local') return true; // Skip auth locally for development
 	if (typeof window === 'undefined') return true; // SSR
 
 	if (!isAuthenticated()) {
@@ -29,6 +31,7 @@ export function requireAuth(redirectTo: string = '/auth'): boolean {
  * @param redirectTo - Optional custom redirect URL (defaults to '/dash')
  */
 export function redirectIfAuthenticated(redirectTo: string = '/dash'): boolean {
+	if (ENV === 'local') return true; // Allow local dev without redirects
 	if (typeof window === 'undefined') return true; // SSR
 
 	if (isAuthenticated()) {
@@ -44,6 +47,7 @@ export function redirectIfAuthenticated(redirectTo: string = '/dash'): boolean {
  * Useful for conditional rendering or logic
  */
 export function checkAuth(): boolean {
+	if (ENV === 'local') return true;
 	if (typeof window === 'undefined') return false; // SSR
 	return isAuthenticated();
 }
@@ -75,6 +79,7 @@ export type RouteGuardConfig = {
  * ```
  */
 export function applyRouteGuard(config: RouteGuardConfig = {}): boolean {
+	if (ENV === 'local') return true; // Unrestricted local dev
 	if (typeof window === 'undefined') return true; // SSR
 
 	const {

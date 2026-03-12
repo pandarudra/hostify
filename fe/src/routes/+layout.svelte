@@ -2,11 +2,15 @@
 	import { derived } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { env } from '$env/dynamic/public';
+	import { initTheme } from '$lib/stores/theme';
 	import './layout.css';
 	import '@fortawesome/fontawesome-free/css/all.min.css';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
+
+	// Hydrate the saved theme preference and apply it to the document root
+	initTheme();
 
 	const SITE_URL = (env.PUBLIC_SITE_URL || 'https://hostify.dev').replace(/\/$/, '');
 	const defaultDescription =

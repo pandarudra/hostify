@@ -11,19 +11,156 @@
 		sans-serif;
 }
 
+/* Theme tokens */
+:root {
+	--bg: #f8fafc;
+	--surface: #ffffff;
+	--surface-muted: #e0f2fe;
+	--surface-strong: #e2e8f0;
+	--text-primary: #0f172a;
+	--text-muted: #475569;
+	--text-subtle: #64748b;
+	--border: #0f172a;
+	--accent: #0ea5e9;
+	--accent-strong: #0284c7;
+	--shadow-color: rgba(0, 0, 0, 0.25);
+	--success-bg: #dcfce7;
+	--success-text: #166534;
+	--warning-bg: #fef9c3;
+	--warning-text: #854d0e;
+	--danger-bg: #fee2e2;
+	--danger-text: #b91c1c;
+}
+
+:root[data-theme='dark'] {
+	--bg: #0b1220;
+	--surface: #0f172a;
+	--surface-muted: #0f172a;
+	--surface-strong: #111827;
+	--text-primary: #e2e8f0;
+	--text-muted: #cbd5e1;
+	--text-subtle: #94a3b8;
+	--border: #e2e8f0;
+	--accent: #38bdf8;
+	--accent-strong: #0ea5e9;
+	--shadow-color: rgba(0, 0, 0, 0.35);
+	--success-bg: #0f2f24;
+	--success-text: #6ee7b7;
+	--warning-bg: #2f2412;
+	--warning-text: #facc15;
+	--danger-bg: #2d1518;
+	--danger-text: #fca5a5;
+}
+
+:root[data-theme='sunset'] {
+	--bg: #1f0f2a;
+	--surface: #2a1538;
+	--surface-muted: #341b46;
+	--surface-strong: #3f2354;
+	--text-primary: #f5e9ff;
+	--text-muted: #d6c7f2;
+	--text-subtle: #b8a7de;
+	--border: #fbbf24;
+	--accent: #f472b6;
+	--accent-strong: #fb7185;
+	--shadow-color: rgba(0, 0, 0, 0.45);
+	--success-bg: #26402f;
+	--success-text: #b5f5d0;
+	--warning-bg: #4a310f;
+	--warning-text: #fcd34d;
+	--danger-bg: #4c1d2f;
+	--danger-text: #fda4af;
+}
+
+body {
+	background: var(--bg);
+	color: var(--text-primary);
+	transition:
+		background-color 200ms ease,
+		color 200ms ease;
+}
+
 /* Custom utilities for cartoon style */
 .border-3 {
 	border-width: 3px;
 }
 
 .cartoon-shadow {
-	box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
+	box-shadow: 4px 4px 0px var(--shadow-color);
 }
 
 .cartoon-shadow-lg {
-	box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.25);
+	box-shadow: 6px 6px 0px var(--shadow-color);
 }
 
 .cartoon-shadow-sm {
-	box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+	box-shadow: 2px 2px 0px var(--shadow-color);
+}
+
+/* Theme-aware overrides for existing utility classes */
+[data-theme] .bg-white {
+	background-color: var(--surface) !important;
+	color: var(--text-primary);
+}
+
+[data-theme] .bg-sky-50,
+[data-theme] .bg-slate-50 {
+	background-color: var(--surface-muted) !important;
+}
+
+[data-theme] .bg-sky-500 {
+	background-color: var(--accent) !important;
+}
+
+[data-theme] .text-slate-800,
+[data-theme] .text-slate-700 {
+	color: var(--text-primary) !important;
+}
+
+[data-theme] .text-slate-600 {
+	color: var(--text-muted) !important;
+}
+
+[data-theme] .text-slate-500,
+[data-theme] .text-slate-400,
+[data-theme] .placeholder-slate-400::placeholder {
+	color: var(--text-subtle) !important;
+}
+
+[data-theme] .border-slate-800 {
+	border-color: var(--border) !important;
+}
+
+[data-theme] .hover\:bg-slate-50:hover {
+	background-color: var(--surface-strong) !important;
+}
+
+/* Status colors */
+[data-theme] .bg-green-50,
+[data-theme] .bg-green-100 {
+	background-color: var(--success-bg) !important;
+}
+
+[data-theme] .text-green-800,
+[data-theme] .text-green-600 {
+	color: var(--success-text) !important;
+}
+
+[data-theme] .bg-yellow-100 {
+	background-color: var(--warning-bg) !important;
+}
+
+[data-theme] .text-yellow-800 {
+	color: var(--warning-text) !important;
+}
+
+[data-theme] .bg-red-50,
+[data-theme] .bg-red-100 {
+	background-color: var(--danger-bg) !important;
+}
+
+[data-theme] .text-red-600,
+[data-theme] .text-red-700,
+[data-theme] .text-red-800 {
+	color: var(--danger-text) !important;
 }
