@@ -48,5 +48,7 @@ export async function sendResendEmail(
     id?: string;
   };
 
-  return { id: result.id, status: response.status };
+  return result.id
+    ? { id: result.id, status: response.status }
+    : { status: response.status };
 }
