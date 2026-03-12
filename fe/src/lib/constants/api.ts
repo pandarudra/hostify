@@ -19,6 +19,12 @@ export const API_ENDPOINTS = {
 		details: (id: string) => `${API_URL}/api/deployments/${id}`,
 		delete: (id: string) => `${API_URL}/api/deployments/${id}`
 	},
+	settings: {
+		base: `${API_URL}/api/settings`
+	},
+	notifications: {
+		email: `${API_URL}/api/notifications/email`
+	},
 	git: {
 		webhook: (token: string) => `${API_URL}/api/git/webhook/${token}`
 	}

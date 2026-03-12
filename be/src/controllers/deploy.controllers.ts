@@ -7,6 +7,7 @@ import { isDBConnected } from "../config/database.js";
 import crypto from "crypto";
 import { createGitHubWebhook } from "../utils/github.js";
 import { getProjectMetadata } from "../utils/cloudflare.js";
+import { sendUserNotification } from "../services/notifications.js";
 
 /**
  * Verify deployment status - check if subdomain is properly configured
@@ -169,7 +170,7 @@ export const deployWithAuth = async (
       lastDeployedAt: new Date(),
     });
 
-    return res.status(200).json({
+    const responsePayload = {
       success: true,
       message: "Deployment successful",
       deployment: {
@@ -187,7 +188,30 @@ export const deployWithAuth = async (
         message: webhookResult.message,
         error: webhookResult.error,
       },
-    });
+    };
+
+    try {
+      await sendUserNotification({
+        userId: user._id.toString(),
+        type: "deploy",
+        subject: `Deployment ${deploymentStatus === "active" ? "successful" : "failed"}: ${repoName}`,
+        text: `Status: ${deploymentStatus}. Repo: ${repoOwner}/${repoName}. URL: ${result.url || "N/A"}.`,
+        templateContext: {
+          username: user.username,
+          details: `Subdomain: ${result.subdomain}`,
+        },
+        loggerContext: {
+          source: "deploy",
+          repo: `${repoOwner}/${repoName}`,
+          status: deploymentStatus,
+          subdomain: result.subdomain,
+        },
+      });
+    } catch (notifyError) {
+      console.error("Deploy notification error:", notifyError);
+    }
+
+    return res.status(200).json(responsePayload);
   } catch (error) {
     console.error("Deploy with auth error:", error);
     return res.status(500).json({

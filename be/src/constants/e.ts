@@ -31,3 +31,10 @@ export const isProd = (process.env.ENV as string) === "production";
 export const PROD_DEPLOYMENT_URL = process.env.PROD_URL as string;
 export const LOCAL_WEBHOOK_URL =
   process.env.LOCAL_WEBHOOK_URL || `http://localhost:${PORT}`;
+
+export const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
+export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
+export const GITHUB_CALLBACK_URL =
+  process.env.GITHUB_CALLBACK_URL ||
+  "http://localhost:8000/api/auth/github/callback";
+export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";

@@ -1,23 +1,9 @@
 import type { Response } from "express";
-import { NotificationSettings } from "../models/NotificationSettings.js";
-import { User } from "../models/User.js";
 import type { AuthRequest } from "../utils/jwt.js";
-import { isDBConnected } from "../config/database.js";
-import { sendResendEmail } from "../utils/resend.js";
-
-const DEFAULT_PREFERENCES = {
-  deployEmails: true,
-  securityAlerts: true,
-  weeklyDigest: false,
-  previewComments: true,
-} as const;
-
-const TYPE_TO_PREF_KEY: Record<string, keyof typeof DEFAULT_PREFERENCES> = {
-  deploy: "deployEmails",
-  security: "securityAlerts",
-  digest: "weeklyDigest",
-  preview: "previewComments",
-};
+import {
+  sendUserNotification,
+  type NotificationType,
+} from "../services/notifications.js";
 
 export const sendNotificationEmail = async (
   req: AuthRequest,
@@ -29,55 +15,29 @@ export const sendNotificationEmail = async (
         .status(401)
         .json({ success: false, message: "Not authenticated" });
     }
-
-    if (!isDBConnected()) {
-      return res.status(503).json({
-        success: false,
-        message: "Database not connected",
-      });
-    }
-
     const { subject, html, text, to, type } = req.body || {};
 
-    if (!subject || typeof subject !== "string") {
-      return res
-        .status(400)
-        .json({ success: false, message: "Subject is required" });
-    }
+    const result = await sendUserNotification({
+      userId: req.user.userId,
+      type: (type as NotificationType) || "deploy",
+      subject,
+      html,
+      text,
+      recipientOverride: typeof to === "string" ? to : undefined,
+      loggerContext: { source: "api" },
+    });
 
-    const userId = req.user.userId;
-    const settings = await NotificationSettings.findOne({ userId }).lean();
-    const preferences = settings?.preferences || DEFAULT_PREFERENCES;
+    console.log(result);
 
-    if (type && TYPE_TO_PREF_KEY[type]) {
-      const key = TYPE_TO_PREF_KEY[type];
-      if (preferences[key] === false) {
-        return res.status(202).json({
-          success: true,
-          skipped: true,
-          message: `Notification skipped because ${key} preference is disabled`,
-        });
-      }
-    }
-
-    const user = await User.findById(userId).lean();
-    const recipient =
-      typeof to === "string" && to.length > 0
-        ? to
-        : settings?.notificationEmail || user?.email;
-
-    if (!recipient) {
-      return res.status(400).json({
-        success: false,
-        message: "No recipient email available",
-      });
-    }
-
-    await sendResendEmail({ to: recipient, subject, html, text });
-
-    return res.status(200).json({
-      success: true,
-      message: "Notification email sent via Resend",
+    return res.status(result.sent ? 200 : 202).json({
+      success: result.sent,
+      skipped: result.skipped,
+      reason: result.reason,
+      message: result.sent
+        ? "Notification email sent via Resend"
+        : result.reason || "Notification skipped",
+      id: result.id,
+      template: type ?? null,
     });
   } catch (error) {
     console.error("Send notification email error:", error);

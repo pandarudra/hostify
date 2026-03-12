@@ -15,6 +15,8 @@
 	let user: any = null;
 	let loading = true;
 	let saveMessage = '';
+	let saving = false;
+	let testing = false;
 	let selectedTheme: Theme = 'light';
 	let preferences = {
 		deployEmails: true,
@@ -22,6 +24,7 @@
 		weeklyDigest: false,
 		previewComments: true
 	};
+	let notificationEmail = '';
 
 	const unsubscribe = theme.subscribe((value) => (selectedTheme = value));
 	onDestroy(() => unsubscribe());
@@ -47,6 +50,7 @@
 					email: 'dev@localhost',
 					avatarUrl: ''
 				};
+				notificationEmail = user.email;
 			} else {
 				const response = await fetch(API_ENDPOINTS.auth.me, {
 					headers: getAuthHeaders()
@@ -55,6 +59,22 @@
 				if (response.ok) {
 					const data = await response.json();
 					user = data.user;
+
+					// Fetch persisted settings
+					const settingsRes = await fetch(API_ENDPOINTS.settings.base, {
+						headers: getAuthHeaders()
+					});
+					if (settingsRes.ok) {
+						const settingsData = await settingsRes.json();
+						const apiPrefs = settingsData.settings?.preferences ?? {};
+						preferences = { ...preferences, ...apiPrefs };
+						if (settingsData.settings?.theme) {
+							selectedTheme = settingsData.settings.theme;
+							setTheme(selectedTheme);
+						}
+						notificationEmail =
+							settingsData.settings?.notificationEmail || user?.email || '';
+					}
 				} else {
 					clearAuthToken();
 					window.location.href = ROUTES.auth;
@@ -69,7 +89,7 @@
 
 	function togglePref(key: keyof typeof preferences) {
 		preferences = { ...preferences, [key]: !preferences[key] };
-		persistPrefs('Preferences saved');
+		syncSettings('Preferences saved');
 	}
 
 	function persistPrefs(message: string) {
@@ -83,7 +103,93 @@
 	function chooseTheme(next: Theme) {
 		selectedTheme = next;
 		setTheme(next);
-		persistPrefs(`Theme set to ${next}`);
+		syncSettings(`Theme set to ${next}`);
+	}
+
+	async function syncSettings(message: string) {
+		persistPrefs(message);
+		if (ENV === 'local') return;
+		saving = true;
+		const emailToSave = notificationEmail.trim();
+		notificationEmail = emailToSave;
+		try {
+			const payload: Record<string, unknown> = {
+				preferences,
+				theme: selectedTheme
+			};
+
+			if (emailToSave) {
+				payload.notificationEmail = emailToSave;
+			}
+
+			await fetch(API_ENDPOINTS.settings.base, {
+				method: 'PUT',
+				headers: {
+					...getAuthHeaders(),
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(payload)
+			});
+		} catch (error) {
+			console.error('Failed to sync settings', error);
+		} finally {
+			saving = false;
+		}
+	}
+
+	async function saveNotificationEmail() {
+		if (!notificationEmail.trim()) {
+			saveMessage = 'Add an email to receive notifications';
+			setTimeout(() => (saveMessage = ''), 2000);
+			return;
+		}
+		await syncSettings('Notification email updated');
+	}
+
+	async function sendTestNotification() {
+		const target = notificationEmail.trim();
+		if (!target) {
+			saveMessage = 'Add an email before sending a test';
+			setTimeout(() => (saveMessage = ''), 2000);
+			return;
+		}
+
+		if (ENV === 'local') {
+			saveMessage = 'Test emails are disabled in local mode';
+			setTimeout(() => (saveMessage = ''), 2000);
+			return;
+		}
+
+		testing = true;
+		try {
+			const res = await fetch(API_ENDPOINTS.notifications.email, {
+				method: 'POST',
+				headers: {
+					...getAuthHeaders(),
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					to: target,
+					type: 'deploy',
+					subject: 'Hostify test notification',
+					text: `This is a test notification from Hostify at ${new Date().toISOString()}.`
+				})
+			});
+			const data = (await res.json().catch(() => ({}))) as any;
+			if (res.ok) {
+				saveMessage = data?.skipped
+					? `Notification skipped (${data?.reason || 'preference'})`
+					: 'Test notification sent';
+			} else {
+				saveMessage = data?.message || 'Failed to send test notification';
+			}
+		} catch (error) {
+			console.error('Failed to send test notification', error);
+			saveMessage = 'Failed to send test notification';
+		} finally {
+			setTimeout(() => (saveMessage = ''), 2500);
+			testing = false;
+		}
 	}
 </script>
 
@@ -274,6 +380,51 @@
 				<section class="grid gap-6 lg:grid-cols-2">
 					<div class="cartoon-shadow rounded-none border-3 border-slate-800 bg-white p-6">
 						<h3 class="mb-3 text-xl font-bold text-slate-800">Notifications</h3>
+						<div class="mb-4 space-y-2 text-sm text-slate-600">
+							<label class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+								Notification email
+							</label>
+							<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+								<input
+									type="email"
+									class="w-full rounded-none border-3 border-slate-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+									placeholder="you@example.com"
+									bind:value={notificationEmail}
+									on:blur={saveNotificationEmail}
+									autocomplete="email"
+								/>
+								<button
+									type="button"
+									on:click={saveNotificationEmail}
+									disabled={saving}
+									class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
+										saving ? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500' : 'border-slate-800 bg-white text-slate-800'
+									}`}
+								>
+									{saving ? 'Saving...' : 'Save email'}
+								</button>
+							</div>
+							<p class="text-slate-500">
+								We use this email for deploy updates, security alerts, and digests. You can change it anytime.
+							</p>
+							<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+								<button
+									type="button"
+									on:click={sendTestNotification}
+									disabled={!notificationEmail || testing || saving}
+									class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
+										testing || saving
+											? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
+											: 'border-slate-800 bg-sky-500 text-white'
+									}`}
+								>
+									{testing ? 'Sending...' : 'Send test email'}
+								</button>
+								<span class="text-xs font-semibold text-slate-500">
+									Uses your preferences and Resend setup
+								</span>
+							</div>
+						</div>
 						<div class="space-y-3 text-sm text-slate-600">
 							<label
 								class="cartoon-shadow hover:cartoon-shadow-lg flex items-start gap-3 rounded-none border-3 border-slate-800 bg-white p-4 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"

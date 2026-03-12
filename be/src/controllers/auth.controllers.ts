@@ -2,13 +2,13 @@ import type { Request, Response } from "express";
 import { User } from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import { isDBConnected } from "../config/database.js";
-
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
-const GITHUB_CALLBACK_URL =
-  process.env.GITHUB_CALLBACK_URL ||
-  "http://localhost:8000/api/auth/github/callback";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+import { sendUserNotification } from "../services/notifications.js";
+import {
+  FRONTEND_URL,
+  GITHUB_CALLBACK_URL,
+  GITHUB_CLIENT_ID,
+  GITHUB_CLIENT_SECRET,
+} from "../constants/e.js";
 
 /**
  * Initiate GitHub OAuth flow
@@ -125,6 +125,17 @@ export const githubCallback = async (
       username: user.username,
     });
 
+    // Fire-and-forget login notification
+    setImmediate(() => {
+      void sendUserNotification({
+        userId: user._id.toString(),
+        type: "security",
+        subject: "You signed in to Hostify",
+        text: "If this wasn't you, rotate your tokens and review recent activity.",
+        loggerContext: { source: "auth-login" },
+      });
+    });
+
     // Redirect to frontend with token
     res.redirect(`${FRONTEND_URL}/auth/success?token=${token}`);
   } catch (error) {
@@ -198,6 +209,18 @@ export const getCurrentUser = async (
  * Logout user (client should delete token)
  */
 export const logout = (req: Request, res: Response): any => {
+  const authReq = req as any;
+
+  if (authReq.user?.userId) {
+    void sendUserNotification({
+      userId: authReq.user.userId,
+      type: "security",
+      subject: "You signed out of Hostify",
+      text: "If this wasn't you, rotate your tokens and review recent activity.",
+      loggerContext: { source: "auth-logout" },
+    });
+  }
+
   return res.status(200).json({
     success: true,
     message: "Logged out successfully. Please delete your token.",

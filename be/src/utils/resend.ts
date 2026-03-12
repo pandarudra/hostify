@@ -5,13 +5,18 @@ const RESEND_FROM_EMAIL =
 export interface ResendEmailPayload {
   to: string | string[];
   subject: string;
-  html?: string;
-  text?: string;
+  html?: string | undefined;
+  text?: string | undefined;
+}
+
+export interface ResendEmailResult {
+  id?: string;
+  status: number;
 }
 
 export async function sendResendEmail(
   payload: ResendEmailPayload,
-): Promise<void> {
+): Promise<ResendEmailResult> {
   if (!RESEND_API_KEY) {
     throw new Error("RESEND_API_KEY is not configured");
   }
@@ -29,6 +34,7 @@ export async function sendResendEmail(
     headers: {
       Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json",
+      Accept: "application/json",
     },
     body: JSON.stringify(body),
   });
@@ -37,4 +43,10 @@ export async function sendResendEmail(
     const errorText = await response.text();
     throw new Error(`Resend error (${response.status}): ${errorText}`);
   }
+
+  const result = (await response.json().catch(() => ({}))) as {
+    id?: string;
+  };
+
+  return { id: result.id, status: response.status };
 }

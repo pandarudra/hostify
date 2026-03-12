@@ -53,27 +53,33 @@ export const getSettings = async (
     }
 
     const userId = req.user.userId;
+    let user = null as any;
     let settings = await NotificationSettings.findOne({ userId }).lean();
 
     if (!settings) {
-      const user = await User.findById(userId).lean();
+      user = await User.findById(userId).lean();
       const seeded = new NotificationSettings({
         userId,
         notificationEmail: user?.email,
         preferences: DEFAULT_PREFERENCES,
       });
       settings = (await seeded.save()).toObject();
+    } else if (!settings.notificationEmail) {
+      user = await User.findById(userId).lean();
     }
 
     const theme = ALLOWED_THEMES.includes(settings.theme as any)
       ? settings.theme
       : "light";
+    const preferences = sanitizePreferences(settings.preferences || {});
+    const notificationEmail =
+      settings.notificationEmail || user?.email || undefined;
 
     return res.status(200).json({
       success: true,
       settings: {
-        notificationEmail: settings.notificationEmail,
-        preferences: settings.preferences || DEFAULT_PREFERENCES,
+        notificationEmail,
+        preferences,
         theme,
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt,
