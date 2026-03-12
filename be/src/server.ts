@@ -69,6 +69,10 @@ const execServer = async () => {
   // Repository and deployment management routes (new, protected)
   app.use("/api", router.repoRouter);
 
+  // Settings and notification routes
+  app.use("/api/settings", router.settingsRouter);
+  app.use("/api/notifications", router.notificationsRouter);
+
   // API Documentation
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
