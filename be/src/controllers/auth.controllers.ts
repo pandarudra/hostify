@@ -134,7 +134,7 @@ export const githubCallback = async (
         text: "If this wasn't you, rotate your tokens and review recent activity.",
         templateContext: {
           username: user.username,
-          details: user.email ? `Signed in as ${user.email}` : undefined,
+          ...(user.email ? { details: `Signed in as ${user.email}` } : {}),
           ctaUrl: `${FRONTEND_URL}/settings`,
         },
         loggerContext: { source: "auth-login" },
@@ -224,9 +224,9 @@ export const logout = (req: Request, res: Response): any => {
       text: "If this wasn't you, rotate your tokens and review recent activity.",
       templateContext: {
         username: authReq.user.username,
-        details: authReq.user.email
-          ? `Signed out from ${authReq.user.email}`
-          : undefined,
+        ...(authReq.user.email
+          ? { details: `Signed out from ${authReq.user.email}` }
+          : {}),
         ctaUrl: `${FRONTEND_URL}/settings`,
       },
       loggerContext: { source: "auth-logout" },

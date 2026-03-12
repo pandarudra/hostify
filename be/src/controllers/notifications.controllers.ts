@@ -1,9 +1,7 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../utils/jwt.js";
-import {
-  sendUserNotification,
-  type NotificationType,
-} from "../services/notifications.js";
+import { sendUserNotification } from "../services/notifications.js";
+import { type NotificationType } from "../types/notification.types.js";
 
 export const sendNotificationEmail = async (
   req: AuthRequest,

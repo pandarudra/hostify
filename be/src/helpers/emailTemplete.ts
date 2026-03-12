@@ -66,9 +66,9 @@ export const securityEmailTemplate = ({
   details,
   ctaUrl,
 }: {
-  username?: string;
-  details?: string;
-  ctaUrl?: string;
+  username?: string | undefined;
+  details?: string | undefined;
+  ctaUrl?: string | undefined;
 }) =>
   renderShell({
     title: `New sign-in detected${username ? ", " + username : ""}`,
@@ -89,9 +89,9 @@ export const previewEmailTemplate = ({
   details,
   ctaUrl,
 }: {
-  username?: string;
-  details?: string;
-  ctaUrl?: string;
+  username?: string | undefined;
+  details?: string | undefined;
+  ctaUrl?: string | undefined;
 }) =>
   renderShell({
     title: "Preview approval required",
@@ -107,9 +107,9 @@ export const deployEmailTemplate = ({
   details,
   ctaUrl,
 }: {
-  username?: string;
-  details?: string;
-  ctaUrl?: string;
+  username?: string | undefined;
+  details?: string | undefined;
+  ctaUrl?: string | undefined;
 }) =>
   renderShell({
     title: `Deployment update${username ? ", " + username : ""}`,
@@ -125,9 +125,9 @@ export const digestEmailTemplate = ({
   details,
   ctaUrl,
 }: {
-  username?: string;
-  details?: string;
-  ctaUrl?: string;
+  username?: string | undefined;
+  details?: string | undefined;
+  ctaUrl?: string | undefined;
 }) =>
   renderShell({
     title: `Weekly digest${username ? ", " + username : ""}`,

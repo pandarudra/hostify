@@ -8,20 +8,19 @@ import {
   previewEmailTemplate,
   securityEmailTemplate,
 } from "../helpers/emailTemplete.js";
+import {
+  TYPE_TO_PREF_KEY,
+  type SendUserNotificationInput,
+  type SendUserNotificationResult,
+  type TemplateCtx,
+} from "../types/notification.types.js";
 
-const DEFAULT_PREFERENCES = {
+export const DEFAULT_PREFERENCES = {
   deployEmails: true,
   securityAlerts: true,
   weeklyDigest: false,
   previewComments: true,
 } as const;
-
-const TYPE_TO_PREF_KEY: Record<string, keyof typeof DEFAULT_PREFERENCES> = {
-  deploy: "deployEmails",
-  security: "securityAlerts",
-  digest: "weeklyDigest",
-  preview: "previewComments",
-};
 
 const TYPE_TEMPLATES: Record<
   keyof typeof TYPE_TO_PREF_KEY,
@@ -52,32 +51,6 @@ const TYPE_TEMPLATES: Record<
     text: "Weekly digest: summary of deployments, traffic, and errors for the past week.",
   },
 };
-
-export type NotificationType = keyof typeof TYPE_TO_PREF_KEY;
-
-export interface TemplateCtx {
-  username?: string;
-  details?: string;
-  ctaUrl?: string;
-}
-
-export interface SendUserNotificationInput {
-  userId: string;
-  type: NotificationType;
-  subject?: string | undefined;
-  html?: string | undefined;
-  text?: string | undefined;
-  recipientOverride?: string | undefined;
-  templateContext?: TemplateCtx | undefined;
-  loggerContext?: Record<string, unknown> | undefined;
-}
-
-export interface SendUserNotificationResult {
-  sent: boolean;
-  skipped?: boolean;
-  reason?: string;
-  id?: string | undefined;
-}
 
 export async function sendUserNotification(
   input: SendUserNotificationInput,
