@@ -132,6 +132,11 @@ export const githubCallback = async (
         type: "security",
         subject: "You signed in to Hostify",
         text: "If this wasn't you, rotate your tokens and review recent activity.",
+        templateContext: {
+          username: user.username,
+          details: user.email ? `Signed in as ${user.email}` : undefined,
+          ctaUrl: `${FRONTEND_URL}/settings`,
+        },
         loggerContext: { source: "auth-login" },
       });
     });
@@ -217,6 +222,13 @@ export const logout = (req: Request, res: Response): any => {
       type: "security",
       subject: "You signed out of Hostify",
       text: "If this wasn't you, rotate your tokens and review recent activity.",
+      templateContext: {
+        username: authReq.user.username,
+        details: authReq.user.email
+          ? `Signed out from ${authReq.user.email}`
+          : undefined,
+        ctaUrl: `${FRONTEND_URL}/settings`,
+      },
       loggerContext: { source: "auth-logout" },
     });
   }

@@ -198,7 +198,11 @@ export const deployWithAuth = async (
         text: `Status: ${deploymentStatus}. Repo: ${repoOwner}/${repoName}. URL: ${result.url || "N/A"}.`,
         templateContext: {
           username: user.username,
-          details: `Subdomain: ${result.subdomain}`,
+          details: `Subdomain: ${result.subdomain} • Status: ${deploymentStatus}`,
+          ctaUrl:
+            result.url ||
+            responsePayload.deployment?.url ||
+            "https://hostify.app/dash",
         },
         loggerContext: {
           source: "deploy",

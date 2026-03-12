@@ -2,6 +2,12 @@ import { NotificationSettings } from "../models/NotificationSettings.js";
 import { User } from "../models/User.js";
 import { isDBConnected } from "../config/database.js";
 import { sendResendEmail } from "../utils/resend.js";
+import {
+  digestEmailTemplate,
+  deployEmailTemplate,
+  previewEmailTemplate,
+  securityEmailTemplate,
+} from "../helpers/emailTemplete.js";
 
 const DEFAULT_PREFERENCES = {
   deployEmails: true,
@@ -19,30 +25,30 @@ const TYPE_TO_PREF_KEY: Record<string, keyof typeof DEFAULT_PREFERENCES> = {
 
 const TYPE_TEMPLATES: Record<
   keyof typeof TYPE_TO_PREF_KEY,
-  { subject: string; html: (ctx: TemplateCtx) => string; text: string }
+  {
+    subject: string;
+    html: (ctx: TemplateCtx) => string;
+    text: string;
+  }
 > = {
   security: {
     subject: "Security alert: new sign-in detected",
-    html: ({ username }) =>
-      `<h2>Heads up${username ? ", " + username : ""}!</h2><p>We spotted a sign-in from a new device. If this wasn't you, rotate your tokens and review recent activity.</p><p><strong>What to do:</strong></p><ul><li>Revoke active sessions</li><li>Reset your password on GitHub</li><li>Regenerate Hostify tokens</li></ul>`,
+    html: (ctx) => securityEmailTemplate(ctx),
     text: "We spotted a sign-in from a new device. If this wasn't you, revoke sessions, reset your GitHub password, and regenerate Hostify tokens.",
   },
   preview: {
     subject: "Action needed: preview approval required",
-    html: ({ username }) =>
-      `<h2>Preview approval needed${username ? ", " + username : ""}</h2><p>Production is blocked until this preview is approved. Please review, test, and approve the changes.</p>`,
+    html: (ctx) => previewEmailTemplate(ctx),
     text: "Preview approval needed. Production is blocked until this preview is approved. Please review and approve the changes.",
   },
   deploy: {
     subject: "Deployment update",
-    html: ({ username }) =>
-      `<h2>Deployment update${username ? ", " + username : ""}</h2><p>Your deployment status changed. Check the dashboard for success, failure, or queued jobs.</p>`,
+    html: (ctx) => deployEmailTemplate(ctx),
     text: "Deployment status changed. Check the dashboard for success, failure, or queued jobs.",
   },
   digest: {
     subject: "Weekly digest: deploys, traffic, errors",
-    html: ({ username }) =>
-      `<h2>Your weekly digest${username ? ", " + username : ""}</h2><p>Summary of deployments, traffic, and errors for the past week.</p>`,
+    html: (ctx) => digestEmailTemplate(ctx),
     text: "Weekly digest: summary of deployments, traffic, and errors for the past week.",
   },
 };
@@ -52,6 +58,7 @@ export type NotificationType = keyof typeof TYPE_TO_PREF_KEY;
 export interface TemplateCtx {
   username?: string;
   details?: string;
+  ctaUrl?: string;
 }
 
 export interface SendUserNotificationInput {
