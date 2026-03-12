@@ -167,23 +167,23 @@
 								<img
 									src={user.avatarUrl}
 									alt={user.username}
-									class="h-10 w-10 rounded-full border-2 border-slate-800"
+									class="h-8 w-8 rounded-full border-2 border-slate-800"
 								/>
 							{:else}
 								<div
-									class="flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-800 bg-sky-500 text-lg font-bold text-white"
+									class="flex h-8 w-8 items-center justify-center rounded-full border-2 border-slate-800 bg-sky-500 text-lg font-bold text-white"
 								>
 									<i class="fa-solid fa-gear"></i>
 								</div>
 							{/if}
 							<div class="text-left">
 								<p class="font-bold text-slate-800">{user.username}</p>
-								<p class="text-sm text-slate-600">Settings & profile</p>
+								<!-- <p class="text-sm text-slate-600">Settings & profile</p> -->
 							</div>
 						</Link>
 						<button
 							onclick={handleLogout}
-							class="cartoon-shadow hover:cartoon-shadow-lg active:cartoon-shadow-sm rounded-none border-3 border-slate-800 bg-white px-4 py-2 font-bold text-slate-800 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-red-50 active:translate-x-0.5 active:translate-y-0.5"
+							class="cartoon-shadow hover:cartoon-shadow-lg active:cartoon-shadow-sm rounded-none border-3 border-slate-800 bg-white px-4 py-2.5 font-bold text-slate-800 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-red-50 active:translate-x-0.5 active:translate-y-0.5"
 						>
 							<i class="fa-solid fa-right-from-bracket"></i>
 							Logout
