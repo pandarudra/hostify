@@ -2,8 +2,8 @@ import { setCookie, getCookie, deleteCookie } from '$lib/utils/cookies';
 import { AUTH_TOKEN_COOKIE_NAME, COOKIE_MAX_AGE_DAYS, ENV } from './env';
 
 // Helper function to get authorization headers
-export function getAuthHeaders(): HeadersInit {
-	const token = getAuthToken();
+export function getAuthHeaders(tokenOverride?: string): HeadersInit {
+	const token = tokenOverride || getAuthToken();
 	return {
 		'Content-Type': 'application/json',
 		...(token && { Authorization: `Bearer ${token}` })

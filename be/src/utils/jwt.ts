@@ -9,6 +9,8 @@ export interface JWTPayload {
   userId: string;
   githubId: string;
   username: string;
+  twoFactorPending?: boolean;
+  twoFactorPurpose?: "login";
 }
 
 export interface AuthRequest extends Request {
@@ -18,9 +20,13 @@ export interface AuthRequest extends Request {
 /**
  * Generate JWT token for user
  */
-export function generateToken(payload: JWTPayload): string {
+export function generateToken(
+  payload: JWTPayload,
+  options?: { expiresIn?: string | number },
+): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN as string | number | undefined,
+    expiresIn:
+      options?.expiresIn || (JWT_EXPIRES_IN as string | number | undefined),
   } as jwt.SignOptions);
 }
 
@@ -66,6 +72,14 @@ export function authenticate(
       });
     }
 
+    if (payload.twoFactorPending) {
+      return res.status(401).json({
+        success: false,
+        message: "Two-factor verification required.",
+        twoFactorRequired: true,
+      });
+    }
+
     // Attach user to request
     req.user = payload;
     next();
@@ -78,6 +92,44 @@ export function authenticate(
   }
 }
 
+/**
+ * Authenticate but allow 2FA-pending tokens (used only for finishing OTP flow)
+ */
+export function authenticateAllowTwoFactorPending(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): any {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided. Please login first.",
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const payload = verifyToken(token);
+
+    if (!payload) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token. Please login again.",
+      });
+    }
+
+    req.user = payload;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Authentication failed",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 /**
  * Optional authentication - doesn't fail if no token
  */

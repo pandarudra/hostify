@@ -3,12 +3,43 @@ import { User } from "../models/User.js";
 import { generateToken } from "../utils/jwt.js";
 import { isDBConnected } from "../config/database.js";
 import { sendUserNotification } from "../services/notifications.js";
+import { TwoFactorChallenge } from "../models/TwoFactorChallenge.js";
+import { sendResendEmail } from "../utils/resend.js";
+import { createHash } from "node:crypto";
+import type { AuthRequest } from "../utils/jwt.js";
 import {
   FRONTEND_URL,
   GITHUB_CALLBACK_URL,
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
 } from "../constants/e.js";
+
+const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function generateOtp(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+function hashCode(code: string): string {
+  return createHash("sha256").update(code).digest("hex");
+}
+
+async function createTwoFactorChallenge(
+  userId: string,
+  purpose: "enable" | "login",
+  destination: string,
+): Promise<string> {
+  const code = generateOtp();
+  await TwoFactorChallenge.deleteMany({ userId, purpose });
+  await TwoFactorChallenge.create({
+    userId,
+    purpose,
+    destination,
+    codeHash: hashCode(code),
+    expiresAt: new Date(Date.now() + OTP_TTL_MS),
+  });
+  return code;
+}
 
 /**
  * Initiate GitHub OAuth flow
@@ -119,6 +150,50 @@ export const githubCallback = async (
     }
 
     // Generate JWT for our app
+    if (user.twoFactorEnabled) {
+      const destination = user.twoFactorEmail || user.email;
+
+      if (!destination) {
+        return res.redirect(
+          `${FRONTEND_URL}/auth/error?message=${encodeURIComponent("Two-factor authentication is enabled but no email is set.")}`,
+        );
+      }
+
+      const code = await createTwoFactorChallenge(
+        user._id.toString(),
+        "login",
+        destination,
+      );
+
+      try {
+        await sendResendEmail({
+          to: destination,
+          subject: "Your Hostify login code",
+          text: `Your Hostify verification code is ${code}. It expires in 10 minutes.`,
+        });
+      } catch (emailError) {
+        console.error("2FA email send failed:", emailError);
+        return res.redirect(
+          `${FRONTEND_URL}/auth/error?message=${encodeURIComponent("Failed to send verification code. Please try again.")}`,
+        );
+      }
+
+      const tempToken = generateToken(
+        {
+          userId: user._id.toString(),
+          githubId: user.githubId,
+          username: user.username,
+          twoFactorPending: true,
+          twoFactorPurpose: "login",
+        },
+        { expiresIn: "10m" },
+      );
+
+      return res.redirect(
+        `${FRONTEND_URL}/auth/success?twoFactor=required&token=${tempToken}`,
+      );
+    }
+
     const token = generateToken({
       userId: user._id.toString(),
       githubId: user.githubId,
@@ -198,6 +273,8 @@ export const getCurrentUser = async (
         avatarUrl: user.avatarUrl,
         createdAt: user.createdAt,
         lastLoginAt: user.lastLoginAt,
+        twoFactorEnabled: !!user.twoFactorEnabled,
+        twoFactorEmail: user.twoFactorEmail,
       },
     });
   } catch (error) {
@@ -237,4 +314,83 @@ export const logout = (req: Request, res: Response): any => {
     success: true,
     message: "Logged out successfully. Please delete your token.",
   });
+};
+
+export const verifyTwoFactorLogin = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    if (!req.user?.twoFactorPending || req.user.twoFactorPurpose !== "login") {
+      return res.status(400).json({
+        success: false,
+        message: "No pending two-factor verification.",
+      });
+    }
+
+    if (!isDBConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: "Database not connected",
+      });
+    }
+
+    const code = (req.body?.code || "").toString().trim();
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code is required.",
+      });
+    }
+
+    const challenge = await TwoFactorChallenge.findOne({
+      userId: req.user.userId,
+      purpose: "login",
+      consumed: false,
+      expiresAt: { $gt: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!challenge) {
+      return res.status(400).json({
+        success: false,
+        message: "No active verification code. Please request a new one.",
+      });
+    }
+
+    if (challenge.codeHash !== hashCode(code)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code.",
+      });
+    }
+
+    await TwoFactorChallenge.updateOne(
+      { _id: challenge._id },
+      { $set: { consumed: true } },
+    );
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const fullToken = generateToken({
+      userId: user._id.toString(),
+      githubId: user.githubId,
+      username: user.username,
+    });
+
+    return res.status(200).json({ success: true, token: fullToken });
+  } catch (error) {
+    console.error("Verify 2FA login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to verify code",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 };

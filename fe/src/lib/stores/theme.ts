@@ -1,10 +1,8 @@
 import { browser } from '$app/environment';
+import { DEFAULT_THEME, STORAGE_KEY } from '$lib/constants/env';
 import { writable } from 'svelte/store';
 
 export type Theme = 'light' | 'dark' | 'sunset';
-
-const STORAGE_KEY = 'hostify-theme';
-const DEFAULT_THEME: Theme = 'light';
 
 function isTheme(value: unknown): value is Theme {
 	return value === 'light' || value === 'dark' || value === 'sunset';
@@ -31,24 +29,6 @@ if (browser) {
 }
 
 export const theme = themeStore;
-
-export const themeOptions: Array<{ id: Theme; label: string; description: string }> = [
-	{
-		id: 'light',
-		label: 'Light',
-		description: 'Bright surfaces with sky accents'
-	},
-	{
-		id: 'dark',
-		label: 'Dark',
-		description: 'Low-glare surfaces with cyan highlights'
-	},
-	{
-		id: 'sunset',
-		label: 'Sunset',
-		description: 'Moody purples with warm gold borders'
-	}
-];
 
 export function initTheme(): Theme {
 	applyTheme(initialTheme);

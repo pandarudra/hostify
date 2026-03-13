@@ -6,7 +6,8 @@ export const API_ENDPOINTS = {
 		github: `${API_URL}/api/auth/github`,
 		githubCallback: `${API_URL}/api/auth/github/callback`,
 		me: `${API_URL}/api/auth/me`,
-		logout: `${API_URL}/api/auth/logout`
+		logout: `${API_URL}/api/auth/logout`,
+		twoFactorVerify: `${API_URL}/api/auth/2fa/verify`
 	},
 	repo: {
 		list: `${API_URL}/api/repositories`
@@ -20,7 +21,10 @@ export const API_ENDPOINTS = {
 		delete: (id: string) => `${API_URL}/api/deployments/${id}`
 	},
 	settings: {
-		base: `${API_URL}/api/settings`
+		base: `${API_URL}/api/settings`,
+		twoFactorInitiate: `${API_URL}/api/settings/2fa/initiate`,
+		twoFactorVerify: `${API_URL}/api/settings/2fa/verify`,
+		twoFactorDisable: `${API_URL}/api/settings/2fa/disable`
 	},
 	notifications: {
 		email: `${API_URL}/api/notifications/email`

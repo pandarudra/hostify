@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/public';
+import type { Theme } from '$lib/stores/theme';
 
 /**
  * Environment configuration
@@ -18,3 +19,6 @@ export const API_URL = ENV === 'production' ? API_URL_PROD : API_URL_LOCAL;
 // Cookie configuration
 export const AUTH_TOKEN_COOKIE_NAME = 'auth_token';
 export const COOKIE_MAX_AGE_DAYS = 7; // 7 days expiration
+
+export const STORAGE_KEY = 'hostify-theme';
+export const DEFAULT_THEME: Theme = 'light';
