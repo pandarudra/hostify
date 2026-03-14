@@ -2,7 +2,7 @@
 	import { env } from '$env/dynamic/public';
 	import { LandingPage } from '$lib';
 
-	const siteUrl = (env.PUBLIC_SITE_URL || 'https://hostify.dev').replace(/\/$/, '');
+	const siteUrl = (env.PUBLIC_SITE_URL || 'https://hostify.rudrax.me').replace(/\/$/, '');
 	const socialImage = `${siteUrl}/favicon.svg`;
 	const title = 'Hostify | Deploy static sites from GitHub in minutes';
 	const description =

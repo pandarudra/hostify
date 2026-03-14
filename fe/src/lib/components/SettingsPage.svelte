@@ -35,6 +35,7 @@
 	let twoFactorLoading = false;
 	let twoFactorVerifying = false;
 	let twoFactorDisabling = false;
+	let twoFactorModalOpen = false;
 
 	const unsubscribe = theme.subscribe((value) => (selectedTheme = value));
 	onDestroy(() => unsubscribe());
@@ -209,6 +210,20 @@
 		setTimeout(() => (twoFactorMessage = ''), 2500);
 	}
 
+	function openTwoFactorModal() {
+		twoFactorModalOpen = true;
+		twoFactorStage = 'idle';
+		twoFactorCode = '';
+		twoFactorDestination = '';
+		twoFactorMessage = '';
+	}
+
+	function closeTwoFactorModal() {
+		twoFactorModalOpen = false;
+		twoFactorStage = 'idle';
+		twoFactorCode = '';
+	}
+
 	async function initiateTwoFactor() {
 		if (ENV === 'local') {
 			flashTwoFactor('Two-factor is disabled in local mode.');
@@ -276,6 +291,7 @@
 				twoFactorEmail = data?.twoFactorEmail || twoFactorDestination || notificationEmail;
 				twoFactorStage = 'idle';
 				twoFactorCode = '';
+				twoFactorModalOpen = false;
 				flashTwoFactor('Two-factor authentication enabled.');
 			} else {
 				flashTwoFactor(data?.message || 'Invalid code. Try again.');
@@ -450,87 +466,69 @@
 									</p>
 								</div>
 							</label>
-								<div class="rounded-none border-2 border-dashed border-slate-300 p-3">
-									<div class="mb-2 flex items-center justify-between gap-2">
-										<div>
-											<p class="font-semibold text-slate-800">Two-factor authentication</p>
-											<p class="text-slate-600">
-												Protect sign-ins with a one-time code sent to your email.
-											</p>
-										</div>
-										<span
-											class={`rounded-none border-2 px-2 py-1 text-xs font-bold ${
-												twoFactorEnabled
-													? 'border-emerald-700 bg-emerald-500 text-white'
+							<div class="rounded-none border-2 border-dashed border-slate-300 p-3">
+								<div class="mb-2 flex items-center justify-between gap-2">
+									<div>
+										<p class="font-semibold text-slate-800">Two-factor authentication</p>
+										<p class="text-slate-600">
+											Protect sign-ins with a one-time code sent to your email.
+										</p>
+									</div>
+									<span
+										class={`rounded-none border-2 px-2 py-1 text-xs font-bold ${
+											twoFactorEnabled
+												? 'border-emerald-700 bg-emerald-500 text-white'
+												: 'border-slate-800 bg-white text-slate-800'
+										}`}
+									>
+										{twoFactorEnabled ? 'Enabled' : 'Disabled'}
+									</span>
+								</div>
+								{#if twoFactorMessage}
+									<p class="text-xs font-semibold text-slate-700">{twoFactorMessage}</p>
+								{/if}
+								{#if twoFactorEnabled}
+									<p class="text-sm text-slate-600">
+										Codes are delivered to {twoFactorEmail || notificationEmail || 'your email'}.
+									</p>
+									<div class="mt-2 flex flex-wrap gap-2">
+										<button
+											on:click={disableTwoFactor}
+											disabled={twoFactorDisabling}
+											class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
+												twoFactorDisabling
+													? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
 													: 'border-slate-800 bg-white text-slate-800'
 											}`}
 										>
-											{twoFactorEnabled ? 'Enabled' : 'Disabled'}
+											{twoFactorDisabling ? 'Disabling...' : 'Disable 2FA'}
+										</button>
+										<button
+											on:click={openTwoFactorModal}
+											class="cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 border-slate-800 bg-white px-4 py-2 text-xs font-bold text-slate-800 transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
+										>
+											Manage codes
+										</button>
+									</div>
+								{:else}
+									<p class="text-sm text-slate-600">
+										Verification now happens inside a modal so you can stay on this page.
+									</p>
+									<div class="mt-3 flex flex-wrap gap-2">
+										<button
+											on:click={openTwoFactorModal}
+											class="cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 border-slate-800 bg-sky-500 px-4 py-2 text-xs font-bold text-white transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
+										>
+											Enable
+										</button>
+										<span class="text-xs font-semibold text-slate-500">
+											We will email a one-time code to {notificationEmail ||
+												user?.email ||
+												'your email'}.
 										</span>
 									</div>
-									{#if twoFactorMessage}
-										<p class="text-xs font-semibold text-slate-700">{twoFactorMessage}</p>
-									{/if}
-									{#if twoFactorEnabled}
-										<p class="text-sm text-slate-600">
-											Codes are delivered to {twoFactorEmail || notificationEmail || 'your email'}.
-										</p>
-										<div class="mt-2 flex flex-wrap gap-2">
-											<button
-												on:click={disableTwoFactor}
-												disabled={twoFactorDisabling}
-												class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
-													twoFactorDisabling
-														? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
-														: 'border-slate-800 bg-white text-slate-800'
-													}`}
-											>
-												{twoFactorDisabling ? 'Disabling...' : 'Disable 2FA'}
-											</button>
-										</div>
-									{:else}
-										<p class="text-sm text-slate-600">
-											We will email a verification code to {notificationEmail || user?.email || 'your email'}.
-										</p>
-										<div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-											<button
-												on:click={initiateTwoFactor}
-												disabled={twoFactorLoading}
-												class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
-													twoFactorLoading
-														? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
-														: 'border-slate-800 bg-sky-500 text-white'
-													}`}
-											>
-												{twoFactorLoading ? 'Sending...' : 'Send code'}
-											</button>
-											{#if twoFactorStage === 'code'}
-												<div class="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-													<input
-														type="text"
-														inputmode="numeric"
-														maxlength="6"
-														class="w-full rounded-none border-3 border-slate-800 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
-														placeholder="Verification code"
-														bind:value={twoFactorCode}
-														autocomplete="one-time-code"
-													/>
-													<button
-														on:click={verifyTwoFactorCode}
-														disabled={twoFactorVerifying}
-														class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
-															twoFactorVerifying
-																? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
-																: 'border-slate-800 bg-white text-slate-800'
-														}`}
-													>
-														{twoFactorVerifying ? 'Verifying...' : 'Verify code'}
-													</button>
-												</div>
-											{/if}
-										</div>
-									{/if}
-								</div>
+								{/if}
+							</div>
 						</div>
 					</div>
 				</div>
@@ -698,3 +696,85 @@
 		{/if}
 	</main>
 </div>
+
+{#if twoFactorModalOpen}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-8">
+		<div
+			class="cartoon-shadow relative w-full max-w-lg rounded-none border-3 border-slate-800 bg-white p-6"
+		>
+			<button
+				type="button"
+				on:click={closeTwoFactorModal}
+				class="absolute top-3 right-3 text-slate-600 hover:text-slate-800"
+				aria-label="Close two-factor modal"
+			>
+				<i class="fa-solid fa-xmark text-lg"></i>
+			</button>
+			<div class="mb-3 space-y-1">
+				<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">Two-factor</p>
+				<h3 class="text-2xl font-black text-slate-800">Verify with a one-time code</h3>
+				<p class="text-sm text-slate-600">
+					We will send a six-digit code to {twoFactorDestination ||
+						notificationEmail ||
+						user?.email ||
+						'your email'}.
+				</p>
+			</div>
+			{#if twoFactorMessage}
+				<div
+					class="mb-2 rounded-none border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700"
+				>
+					{twoFactorMessage}
+				</div>
+			{/if}
+			<div class="flex flex-col gap-3">
+				<div class="flex flex-wrap items-center gap-2">
+					<button
+						on:click={initiateTwoFactor}
+						disabled={twoFactorLoading}
+						class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
+							twoFactorLoading
+								? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
+								: 'border-slate-800 bg-sky-500 text-white'
+						}`}
+					>
+						{twoFactorLoading ? 'Sending...' : 'Send code'}
+					</button>
+					<span class="text-xs font-semibold text-slate-500">
+						Delivery: {twoFactorDestination ||
+							notificationEmail ||
+							user?.email ||
+							'add an email first'}
+					</span>
+				</div>
+				{#if twoFactorStage === 'code'}
+					<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+						<input
+							type="text"
+							inputmode="numeric"
+							maxlength="6"
+							class="w-full rounded-none border-3 border-slate-800 px-3 py-2 text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+							placeholder="Enter the 6-digit code"
+							bind:value={twoFactorCode}
+							autocomplete="one-time-code"
+						/>
+						<button
+							on:click={verifyTwoFactorCode}
+							disabled={twoFactorVerifying}
+							class={`cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 px-4 py-2 text-xs font-bold transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 ${
+								twoFactorVerifying
+									? 'cursor-not-allowed border-slate-300 bg-slate-200 text-slate-500'
+									: 'border-slate-800 bg-white text-slate-800'
+							}`}
+						>
+							{twoFactorVerifying ? 'Verifying...' : 'Verify code'}
+						</button>
+					</div>
+				{/if}
+				<p class="text-xs text-slate-500">
+					Keep this modal open while you complete the code. Codes expire quickly for security.
+				</p>
+			</div>
+		</div>
+	</div>
+{/if}
