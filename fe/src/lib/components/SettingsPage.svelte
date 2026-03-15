@@ -9,8 +9,8 @@
 	import { requireAuth } from '$lib/utils/routeGuard';
 	import { setTheme, theme, type Theme } from '$lib/stores/theme';
 	import { themeOptions } from '$lib/constants/themes';
-
-	const PREF_STORAGE_KEY = 'hostify-preferences';
+	import Heatmap from '$lib/components/Heatmap.svelte';
+	import { PREF_STORAGE_KEY } from '$lib/constants/local';
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let user: any = null;
@@ -36,6 +36,16 @@
 	let twoFactorVerifying = false;
 	let twoFactorDisabling = false;
 	let twoFactorModalOpen = false;
+
+	const operationsHeatmap = [
+		{ label: 'Mon', values: [2, 4, 1, 0, 3, 5, 6] },
+		{ label: 'Tue', values: [0, 1, 2, 3, 4, 5, 8] },
+		{ label: 'Wed', values: [1, 0, 0, 2, 3, 4, 2] },
+		{ label: 'Thu', values: [3, 2, 5, 6, 4, 3, 1] },
+		{ label: 'Fri', values: [4, 6, 7, 5, 6, 8, 9] },
+		{ label: 'Sat', values: [2, 1, 0, 1, 2, 3, 2] },
+		{ label: 'Sun', values: [0, 0, 1, 2, 1, 0, 1] }
+	];
 
 	const unsubscribe = theme.subscribe((value) => (selectedTheme = value));
 	onDestroy(() => unsubscribe());
@@ -692,6 +702,8 @@
 						</ul>
 					</div>
 				</section>
+
+				<Heatmap data={operationsHeatmap} theme={selectedTheme} />
 			</div>
 		{/if}
 	</main>
@@ -767,7 +779,7 @@
 									: 'border-slate-800 bg-white text-slate-800'
 							}`}
 						>
-							{twoFactorVerifying ? 'Verifying...' : 'Verify code'}
+							{twoFactorVerifying ? 'Verifying...' : 'Verify'}
 						</button>
 					</div>
 				{/if}
