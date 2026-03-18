@@ -4,6 +4,7 @@ import {
   listDeployments,
   getDeployment,
   deleteDeployment,
+  getActivityHeatmap,
 } from "../controllers/repo.controllers.js";
 import { authenticate } from "../utils/jwt.js";
 
@@ -19,3 +20,6 @@ repoRouter.get("/repositories", listRepositories);
 repoRouter.get("/deployments", listDeployments);
 repoRouter.get("/deployments/:id", getDeployment);
 repoRouter.delete("/deployments/:id", deleteDeployment);
+
+// Activity & analytics
+repoRouter.get("/activities/heatmap", getActivityHeatmap);

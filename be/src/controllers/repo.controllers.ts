@@ -295,3 +295,121 @@ export const deleteDeployment = async (
     });
   }
 };
+
+type HeatmapSeries = { label: string; values: number[] };
+const HEATMAP_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function buildMonthBuckets(months: number) {
+  const now = new Date();
+  const buckets = [] as { label: string; start: Date }[];
+
+  for (let i = months - 1; i >= 0; i--) {
+    const date = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
+    );
+    const label = date.toLocaleString("en", { month: "short" });
+    buckets.push({
+      label,
+      start: date,
+    });
+  }
+
+  return buckets;
+}
+
+function getMonthIndex(date: Date, buckets: { label: string; start: Date }[]) {
+  if (!buckets.length) return -1;
+
+  for (let i = 0; i < buckets.length; i++) {
+    const bucket = buckets[i];
+    if (!bucket) continue;
+    const next = new Date(
+      Date.UTC(
+        bucket.start.getUTCFullYear(),
+        bucket.start.getUTCMonth() + 1,
+        1,
+      ),
+    );
+    if (date >= bucket.start && date < next) return i;
+  }
+  return -1;
+}
+
+/**
+ * Build a weekday x month heatmap of user activities (deployments & redeploys)
+ */
+export const getActivityHeatmap = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
+    }
+
+    if (!isDBConnected()) {
+      return res
+        .status(503)
+        .json({ success: false, message: "Database not connected" });
+    }
+
+    const MONTHS = 12;
+    const buckets = buildMonthBuckets(MONTHS);
+    const series: HeatmapSeries[] = HEATMAP_WEEKDAYS.map((label) => ({
+      label,
+      values: Array(MONTHS).fill(0),
+    }));
+
+    const deployments = await Deployment.find({ userId: req.user.userId })
+      .select("createdAt updatedAt lastDeployedAt")
+      .lean();
+
+    const seen = new Set<string>();
+
+    for (const deployment of deployments) {
+      const candidates = [
+        deployment.createdAt,
+        deployment.updatedAt,
+        deployment.lastDeployedAt,
+      ].filter(Boolean) as Date[];
+
+      for (const ts of candidates) {
+        const isoDayKey = ts.toISOString().slice(0, 10);
+        const deploymentId =
+          typeof deployment._id?.toString === "function"
+            ? deployment._id.toString()
+            : "na";
+        const dedupeKey = `${isoDayKey}-${deploymentId}`;
+        if (seen.has(dedupeKey)) continue;
+        seen.add(dedupeKey);
+
+        const monthIndex = getMonthIndex(ts, buckets);
+        if (monthIndex === -1) continue;
+
+        const weekdayIndex = (ts.getUTCDay() + 6) % 7; // Monday=0
+        const row = series[weekdayIndex];
+        if (!row || !row.values?.[monthIndex]) {
+          if (!row?.values) continue;
+          row.values[monthIndex] = (row.values[monthIndex] ?? 0) + 1;
+          continue;
+        }
+        row.values[monthIndex] += 1;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: series,
+      monthLabels: buckets.map((b) => b.label),
+    });
+  } catch (error) {
+    console.error("Get activity heatmap error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to build activity heatmap",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};

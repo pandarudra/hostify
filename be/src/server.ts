@@ -1,6 +1,11 @@
 import express from "express";
 import http from "http";
-import { corsOptions, PORT, isProd } from "./constants/e.js";
+import {
+  corsOptions,
+  PORT,
+  isProd,
+  PROD_DEPLOYMENT_URL,
+} from "./constants/e.js";
 import cors from "cors";
 import { router } from "./router/index.js";
 import helmet from "helmet";
@@ -91,12 +96,21 @@ const execServer = async () => {
 
   server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    console.log(
-      `API documentation available at: http://localhost:${PORT}/api/docs`,
-    );
-    console.log(
-      `ReDoc documentation available at: http://localhost:${PORT}/api/redoc`,
-    );
+    if (!isProd) {
+      console.log(
+        `API documentation available at: http://localhost:${PORT}/api/docs`,
+      );
+      console.log(
+        `ReDoc documentation available at: http://localhost:${PORT}/api/redoc`,
+      );
+    } else {
+      console.log(
+        `API documentation available at: ${PROD_DEPLOYMENT_URL}/api/docs`,
+      );
+      console.log(
+        `ReDoc documentation available at: ${PROD_DEPLOYMENT_URL}/api/redoc`,
+      );
+    }
   });
 };
 

@@ -12,6 +12,28 @@
 	import Heatmap from '$lib/components/Heatmap.svelte';
 	import { PREF_STORAGE_KEY } from '$lib/constants/local';
 
+	type HeatmapRow = { label: string; values: number[] };
+
+	const FALLBACK_HEATMAP: HeatmapRow[] = [
+		{ label: 'Mon', values: [2, 4, 1, 0, 3, 5, 6] },
+		{ label: 'Tue', values: [0, 1, 2, 3, 4, 5, 8] },
+		{ label: 'Wed', values: [1, 0, 0, 2, 3, 4, 2] },
+		{ label: 'Thu', values: [3, 2, 5, 6, 4, 3, 1] },
+		{ label: 'Fri', values: [4, 6, 7, 5, 6, 8, 9] },
+		{ label: 'Sat', values: [2, 1, 0, 1, 2, 3, 2] },
+		{ label: 'Sun', values: [0, 0, 1, 2, 1, 0, 1] }
+	];
+
+	function getRollingMonthLabels(count: number): string[] {
+		const now = new Date();
+		const labels: string[] = [];
+		for (let i = count - 1; i >= 0; i--) {
+			const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+			labels.push(date.toLocaleString('en', { month: 'short' }));
+		}
+		return labels;
+	}
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let user: any = null;
 	let loading = true;
@@ -36,19 +58,42 @@
 	let twoFactorVerifying = false;
 	let twoFactorDisabling = false;
 	let twoFactorModalOpen = false;
-
-	const operationsHeatmap = [
-		{ label: 'Mon', values: [2, 4, 1, 0, 3, 5, 6] },
-		{ label: 'Tue', values: [0, 1, 2, 3, 4, 5, 8] },
-		{ label: 'Wed', values: [1, 0, 0, 2, 3, 4, 2] },
-		{ label: 'Thu', values: [3, 2, 5, 6, 4, 3, 1] },
-		{ label: 'Fri', values: [4, 6, 7, 5, 6, 8, 9] },
-		{ label: 'Sat', values: [2, 1, 0, 1, 2, 3, 2] },
-		{ label: 'Sun', values: [0, 0, 1, 2, 1, 0, 1] }
-	];
+	let operationsHeatmap: HeatmapRow[] = [...FALLBACK_HEATMAP];
+	let heatmapMonthLabels: string[] = getRollingMonthLabels(FALLBACK_HEATMAP[0].values.length);
 
 	const unsubscribe = theme.subscribe((value) => (selectedTheme = value));
 	onDestroy(() => unsubscribe());
+
+	async function loadActivityHeatmap() {
+		try {
+			if (ENV === 'local') {
+				operationsHeatmap = [...FALLBACK_HEATMAP];
+				heatmapMonthLabels = getRollingMonthLabels(FALLBACK_HEATMAP[0].values.length);
+				return;
+			}
+
+			const response = await fetch(API_ENDPOINTS.analytics.activityHeatmap, {
+				headers: getAuthHeaders()
+			});
+
+			if (response.ok) {
+				const payload = await response.json();
+				const apiData = Array.isArray(payload?.data) ? payload.data : [];
+				if (apiData.length) {
+					operationsHeatmap = apiData as HeatmapRow[];
+					heatmapMonthLabels = Array.isArray(payload?.monthLabels)
+						? payload.monthLabels
+						: getRollingMonthLabels(apiData[0]?.values?.length || FALLBACK_HEATMAP[0].values.length);
+					return;
+				}
+			}
+		} catch (error) {
+			console.error('Failed to load activity heatmap', error);
+		}
+
+		operationsHeatmap = [...FALLBACK_HEATMAP];
+		heatmapMonthLabels = getRollingMonthLabels(FALLBACK_HEATMAP[0].values.length);
+	}
 
 	onMount(async () => {
 		if (ENV !== 'local' && !requireAuth()) return;
@@ -102,6 +147,7 @@
 					window.location.href = ROUTES.auth;
 				}
 			}
+			await loadActivityHeatmap();
 		} catch (error) {
 			console.error('Failed to load profile', error);
 		} finally {
@@ -703,7 +749,7 @@
 					</div>
 				</section>
 
-				<Heatmap data={operationsHeatmap} theme={selectedTheme} />
+				<Heatmap data={operationsHeatmap} theme={selectedTheme} monthLabels={heatmapMonthLabels} />
 			</div>
 		{/if}
 	</main>

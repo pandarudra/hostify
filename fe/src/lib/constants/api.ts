@@ -26,6 +26,9 @@ export const API_ENDPOINTS = {
 		twoFactorVerify: `${API_URL}/api/settings/2fa/verify`,
 		twoFactorDisable: `${API_URL}/api/settings/2fa/disable`
 	},
+	analytics: {
+		activityHeatmap: `${API_URL}/api/activities/heatmap`
+	},
 	notifications: {
 		email: `${API_URL}/api/notifications/email`
 	},

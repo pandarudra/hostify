@@ -12,6 +12,7 @@
 	];
 
 	export let theme: Theme = 'light';
+	export let monthLabels: string[] | undefined;
 
 	const heatmapPalette: Record<Theme, string[]> = {
 		light: ['#eaf4ff', '#c8e4ff', '#92c7ff', '#5399ff', '#1b6bff'],
@@ -44,10 +45,10 @@
 
 	$: currentPalette = heatmapPalette[theme] ?? heatmapPalette.light;
 	$: heatmapColumns = data?.[0]?.values.length ?? 0;
-	$: heatmapMonthLabels = Array.from(
-		{ length: heatmapColumns },
-		(_, idx) => heatmapMonthNames[idx] || ''
-	);
+	$: heatmapMonthLabels =
+		monthLabels && monthLabels.length === heatmapColumns
+			? monthLabels
+			: Array.from({ length: heatmapColumns }, (_, idx) => heatmapMonthNames[idx] || '');
 	$: heatmapMax = data?.length ? Math.max(...data.flatMap((row) => row.values)) : 1;
 
 	function getHeatColor(value: number, palette: string[]) {
