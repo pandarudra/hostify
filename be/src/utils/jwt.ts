@@ -3,7 +3,8 @@ import type { Request, Response, NextFunction } from "express";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "30d";
+// Keep JWT lifetime aligned with frontend cookie (7 days) unless overridden via env
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 export interface JWTPayload {
   userId: string;

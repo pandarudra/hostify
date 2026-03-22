@@ -14,6 +14,7 @@ import {
   type SendUserNotificationResult,
   type TemplateCtx,
 } from "../types/notification.types.js";
+import { isProd } from "../constants/e.js";
 
 export const DEFAULT_PREFERENCES = {
   deployEmails: true,
@@ -110,6 +111,16 @@ export async function sendUserNotification(
         ...input.loggerContext,
       });
       return { sent: false, skipped: true, reason: "no-subject" };
+    }
+
+    if (!isProd) {
+      console.info("notifications:dev-mode-skip", {
+        userId: input.userId,
+        type: input.type,
+        recipient,
+        ...input.loggerContext,
+      });
+      return { sent: false, skipped: true, reason: "dev-mode-skip" };
     }
 
     const result = await sendResendEmail({

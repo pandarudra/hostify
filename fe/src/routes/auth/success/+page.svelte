@@ -16,6 +16,7 @@
 		const urlParams = new URLSearchParams(window.location.search);
 		const token = urlParams.get('token');
 		const twoFactor = urlParams.get('twoFactor');
+		console.log(urlParams)
 
 		if (twoFactor === 'required' && token) {
 			pendingToken = token;

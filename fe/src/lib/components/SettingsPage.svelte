@@ -3,14 +3,15 @@
 	import { browser } from '$app/environment';
 	import { API_ENDPOINTS } from '$lib/constants/api';
 	import { clearAuthToken, getAuthHeaders } from '$lib/constants/helpers';
-	import { ENV } from '$lib/constants/env';
+	import { ENV, isUITesting } from '$lib/constants/env';
 	import Link from '$lib/components/Link.svelte';
 	import { ROUTES } from '$lib/routes';
 	import { requireAuth } from '$lib/utils/routeGuard';
 	import { setTheme, theme, type Theme } from '$lib/stores/theme';
 	import { themeOptions } from '$lib/constants/themes';
-	import Heatmap from '$lib/components/Heatmap.svelte';
+
 	import { PREF_STORAGE_KEY } from '$lib/constants/local';
+	import Heatmap from './Heatmap.svelte';
 
 	type HeatmapRow = { label: string; values: number[] };
 
@@ -76,6 +77,8 @@
 				headers: getAuthHeaders()
 			});
 
+			console.log(response);
+
 			if (response.ok) {
 				const payload = await response.json();
 				const apiData = Array.isArray(payload?.data) ? payload.data : [];
@@ -83,7 +86,9 @@
 					operationsHeatmap = apiData as HeatmapRow[];
 					heatmapMonthLabels = Array.isArray(payload?.monthLabels)
 						? payload.monthLabels
-						: getRollingMonthLabels(apiData[0]?.values?.length || FALLBACK_HEATMAP[0].values.length);
+						: getRollingMonthLabels(
+								apiData[0]?.values?.length || FALLBACK_HEATMAP[0].values.length
+							);
 					return;
 				}
 			}
@@ -110,7 +115,7 @@
 		}
 
 		try {
-			if (ENV === 'local') {
+			if (isUITesting) {
 				user = {
 					username: 'Local Dev',
 					email: 'dev@localhost',

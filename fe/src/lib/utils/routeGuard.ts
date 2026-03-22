@@ -31,7 +31,6 @@ export function requireAuth(redirectTo: string = '/auth'): boolean {
  * @param redirectTo - Optional custom redirect URL (defaults to '/dash')
  */
 export function redirectIfAuthenticated(redirectTo: string = '/dash'): boolean {
-	if (ENV === 'local') return true; // Allow local dev without redirects
 	if (typeof window === 'undefined') return true; // SSR
 
 	if (isAuthenticated()) {

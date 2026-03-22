@@ -3,10 +3,14 @@ dotenv.config();
 
 export const PORT = Number(process.env.PORT);
 export const corsOptions = {
-  origin: "*",
+  origin: [`${process.env.FRONTEND_URL}`, `${process.env.LOCAL_FRONTEND_URL}`],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
+
+// flag to check if the environment is production or not
+export const isProd = (process.env.ENV as string) === "production";
+
 export const uploadDir = process.env.UPLOAD_DIR as string;
 
 // Azure Storage Configuration
@@ -27,14 +31,24 @@ export const GITHUB_WEBHOOK_SECRET = process.env
   .GITHUB_WEBHOOK_SECRET as string;
 
 // deployment constants for production
-export const isProd = (process.env.ENV as string) === "production";
 export const PROD_DEPLOYMENT_URL = process.env.PROD_URL as string;
 export const LOCAL_WEBHOOK_URL =
   process.env.LOCAL_WEBHOOK_URL || `http://localhost:${PORT}`;
 
-export const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
-export const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
-export const GITHUB_CALLBACK_URL =
-  process.env.GITHUB_CALLBACK_URL ||
-  "http://localhost:8000/api/auth/github/callback";
-export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+// GitHub OAuth configuration
+export const GITHUB_CLIENT_ID = isProd
+  ? process.env.GITHUB_CLIENT_ID || ""
+  : process.env.LOCAL_GITHUB_CLIENT_ID || "";
+
+export const GITHUB_CLIENT_SECRET = isProd
+  ? process.env.GITHUB_CLIENT_SECRET || ""
+  : process.env.LOCAL_GITHUB_CLIENT_SECRET || "";
+
+export const GITHUB_CALLBACK_URL = isProd
+  ? process.env.GITHUB_CALLBACK_URL || ""
+  : process.env.LOCAL_GITHUB_CALLBACK_URL || "";
+
+// frontend url
+export const FRONTEND_URL = isProd
+  ? process.env.FRONTEND_URL || ""
+  : process.env.LOCAL_FRONTEND_URL || "http://localhost:5173";

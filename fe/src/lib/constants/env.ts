@@ -22,3 +22,5 @@ export const COOKIE_MAX_AGE_DAYS = 7; // 7 days expiration
 
 export const STORAGE_KEY = 'hostify-theme';
 export const DEFAULT_THEME: Theme = 'light';
+
+export const isUITesting = env.PUBLIC_ENV === 'uitesting';

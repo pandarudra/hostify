@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { API_ENDPOINTS } from '$lib/constants/api';
 	import { clearAuthToken, getAuthHeaders } from '$lib/constants/helpers';
-	import { ENV } from '$lib/constants/env';
+	import { ENV, isUITesting } from '$lib/constants/env';
 	import { requireAuth } from '$lib/utils/routeGuard';
 	import { onMount } from 'svelte';
 	import Link from './Link.svelte';
@@ -63,7 +63,7 @@
 
 		// Fetch current user data
 		try {
-			if (ENV === 'local') {
+			if (isUITesting) {
 				user = {
 					username: 'Local Dev',
 					email: 'dev@localhost',

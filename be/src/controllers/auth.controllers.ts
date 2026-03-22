@@ -12,6 +12,7 @@ import {
   GITHUB_CALLBACK_URL,
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
+  isProd,
 } from "../constants/e.js";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
@@ -165,16 +166,22 @@ export const githubCallback = async (
         destination,
       );
 
-      try {
-        await sendResendEmail({
-          to: destination,
-          subject: "Your Hostify login code",
-          text: `Your Hostify verification code is ${code}. It expires in 10 minutes.`,
-        });
-      } catch (emailError) {
-        console.error("2FA email send failed:", emailError);
-        return res.redirect(
-          `${FRONTEND_URL}/auth/error?message=${encodeURIComponent("Failed to send verification code. Please try again.")}`,
+      if (isProd) {
+        try {
+          await sendResendEmail({
+            to: destination,
+            subject: "Your Hostify login code",
+            text: `Your Hostify verification code is ${code}. It expires in 10 minutes.`,
+          });
+        } catch (emailError) {
+          console.error("2FA email send failed:", emailError);
+          return res.redirect(
+            `${FRONTEND_URL}/auth/error?message=${encodeURIComponent("Failed to send verification code. Please try again.")}`,
+          );
+        }
+      } else {
+        console.info(
+          `[LOCAL 2FA] Verification code for ${destination}: ${code}`,
         );
       }
 
