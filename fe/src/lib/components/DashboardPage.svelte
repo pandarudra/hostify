@@ -202,8 +202,13 @@
 			</div>
 		{:else if user}
 			<div class="mb-8">
-				<h1 class="mb-2 text-5xl font-black text-slate-800">Dashboard</h1>
-				<p class="text-xl text-slate-600">Welcome back, {user.username}! 👋</p>
+				<h1 class="mb-2 text-4xl font-black text-slate-800">Dashboard</h1>
+				<p class="flex items-center gap-2 text-xl text-slate-600">
+					Welcome back, {user.username}!
+					<span class="wave-icon" aria-hidden="true">
+						<i class="fa-solid fa-hand"></i>
+					</span>
+				</p>
 			</div>
 
 			<!-- Deploy New Site Button -->
@@ -392,3 +397,43 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	:global(.wave-icon) {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border-radius: 9999px;
+		/*  */
+		color: #0ea5e9;
+		margin-bottom: 2px;
+		animation: wave-hand 1.6s ease-in-out infinite;
+		transform-origin: 70% 70%;
+	}
+
+	@keyframes wave-hand {
+		0% {
+			transform: rotate(0deg);
+		}
+		15% {
+			transform: rotate(18deg);
+		}
+		30% {
+			transform: rotate(-12deg);
+		}
+		45% {
+			transform: rotate(12deg);
+		}
+		60% {
+			transform: rotate(-8deg);
+		}
+		75% {
+			transform: rotate(6deg);
+		}
+		100% {
+			transform: rotate(0deg);
+		}
+	}
+</style>

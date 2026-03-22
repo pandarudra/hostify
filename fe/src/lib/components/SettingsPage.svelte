@@ -15,15 +15,15 @@
 
 	type HeatmapRow = { label: string; values: number[] };
 
-	const FALLBACK_HEATMAP: HeatmapRow[] = [
-		{ label: 'Mon', values: [2, 4, 1, 0, 3, 5, 6] },
-		{ label: 'Tue', values: [0, 1, 2, 3, 4, 5, 8] },
-		{ label: 'Wed', values: [1, 0, 0, 2, 3, 4, 2] },
-		{ label: 'Thu', values: [3, 2, 5, 6, 4, 3, 1] },
-		{ label: 'Fri', values: [4, 6, 7, 5, 6, 8, 9] },
-		{ label: 'Sat', values: [2, 1, 0, 1, 2, 3, 2] },
-		{ label: 'Sun', values: [0, 0, 1, 2, 1, 0, 1] }
-	];
+	const WEEK_LABELS: string[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+	const DEFAULT_HEATMAP_MONTHS = 12;
+
+	function buildFallbackHeatmap(months: number = DEFAULT_HEATMAP_MONTHS): HeatmapRow[] {
+		return WEEK_LABELS.map((label, idx) => ({
+			label,
+			values: Array.from({ length: months }, (_v, mIdx) => Math.max(0, (months - mIdx + idx) % 5))
+		}));
+	}
 
 	function getRollingMonthLabels(count: number): string[] {
 		const now = new Date();
@@ -59,17 +59,17 @@
 	let twoFactorVerifying = false;
 	let twoFactorDisabling = false;
 	let twoFactorModalOpen = false;
-	let operationsHeatmap: HeatmapRow[] = [...FALLBACK_HEATMAP];
-	let heatmapMonthLabels: string[] = getRollingMonthLabels(FALLBACK_HEATMAP[0].values.length);
+	let operationsHeatmap: HeatmapRow[] = buildFallbackHeatmap();
+	let heatmapMonthLabels: string[] = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
 
 	const unsubscribe = theme.subscribe((value) => (selectedTheme = value));
 	onDestroy(() => unsubscribe());
 
 	async function loadActivityHeatmap() {
 		try {
-			if (ENV === 'local') {
-				operationsHeatmap = [...FALLBACK_HEATMAP];
-				heatmapMonthLabels = getRollingMonthLabels(FALLBACK_HEATMAP[0].values.length);
+			if (isUITesting) {
+				operationsHeatmap = buildFallbackHeatmap();
+				heatmapMonthLabels = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
 				return;
 			}
 
@@ -87,7 +87,7 @@
 					heatmapMonthLabels = Array.isArray(payload?.monthLabels)
 						? payload.monthLabels
 						: getRollingMonthLabels(
-								apiData[0]?.values?.length || FALLBACK_HEATMAP[0].values.length
+								apiData[0]?.values?.length || DEFAULT_HEATMAP_MONTHS
 							);
 					return;
 				}
@@ -96,8 +96,8 @@
 			console.error('Failed to load activity heatmap', error);
 		}
 
-		operationsHeatmap = [...FALLBACK_HEATMAP];
-		heatmapMonthLabels = getRollingMonthLabels(FALLBACK_HEATMAP[0].values.length);
+		operationsHeatmap = buildFallbackHeatmap();
+		heatmapMonthLabels = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
 	}
 
 	onMount(async () => {

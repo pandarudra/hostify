@@ -336,7 +336,7 @@ function getMonthIndex(date: Date, buckets: { label: string; start: Date }[]) {
 }
 
 /**
- * Build a weekday x month heatmap of user activities (deployments & redeploys)
+ * Build a weekday x month heatmap of user activities (last login + deploy events)
  */
 export const getActivityHeatmap = async (
   req: AuthRequest,
@@ -363,40 +363,44 @@ export const getActivityHeatmap = async (
     }));
 
     const deployments = await Deployment.find({ userId: req.user.userId })
-      .select("createdAt updatedAt lastDeployedAt")
+      .select("createdAt lastDeployedAt")
+      .lean();
+
+    const user = await User.findById(req.user.userId)
+      .select("lastLoginAt")
       .lean();
 
     const seen = new Set<string>();
 
+    const bump = (ts: Date, key: string) => {
+      const monthIndex = getMonthIndex(ts, buckets);
+      if (monthIndex === -1) return;
+
+      const weekdayIndex = (ts.getUTCDay() + 6) % 7; // Monday=0
+      const row = series[weekdayIndex];
+      if (!row?.values) return;
+
+      const isoDayKey = ts.toISOString().slice(0, 10);
+      const dedupeKey = `${isoDayKey}-${key}`;
+      if (seen.has(dedupeKey)) return;
+      seen.add(dedupeKey);
+
+      row.values[monthIndex] = (row.values[monthIndex] ?? 0) + 1;
+    };
+
     for (const deployment of deployments) {
       const candidates = [
         deployment.createdAt,
-        deployment.updatedAt,
         deployment.lastDeployedAt,
       ].filter(Boolean) as Date[];
 
       for (const ts of candidates) {
-        const isoDayKey = ts.toISOString().slice(0, 10);
-        const deploymentId =
-          typeof deployment._id?.toString === "function"
-            ? deployment._id.toString()
-            : "na";
-        const dedupeKey = `${isoDayKey}-${deploymentId}`;
-        if (seen.has(dedupeKey)) continue;
-        seen.add(dedupeKey);
-
-        const monthIndex = getMonthIndex(ts, buckets);
-        if (monthIndex === -1) continue;
-
-        const weekdayIndex = (ts.getUTCDay() + 6) % 7; // Monday=0
-        const row = series[weekdayIndex];
-        if (!row || !row.values?.[monthIndex]) {
-          if (!row?.values) continue;
-          row.values[monthIndex] = (row.values[monthIndex] ?? 0) + 1;
-          continue;
-        }
-        row.values[monthIndex] += 1;
+        bump(ts, `deploy-${deployment._id?.toString?.() ?? "na"}`);
       }
+    }
+
+    if (user?.lastLoginAt) {
+      bump(user.lastLoginAt, "last-login");
     }
 
     return res.status(200).json({
