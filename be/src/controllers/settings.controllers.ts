@@ -1,11 +1,13 @@
 import type { Response } from "express";
 import { NotificationSettings } from "../models/NotificationSettings.js";
 import { User } from "../models/User.js";
+import { DeveloperSettings } from "../models/DeveloperSettings.js";
 import type { AuthRequest } from "../utils/jwt.js";
 import { isDBConnected } from "../config/database.js";
 import { TwoFactorChallenge } from "../models/TwoFactorChallenge.js";
 import { sendResendEmail } from "../utils/resend.js";
 import { createHash } from "node:crypto";
+import { decryptSecret, encryptSecret } from "../utils/crypto.js";
 
 const DEFAULT_PREFERENCES = {
   deployEmails: true,
@@ -15,6 +17,11 @@ const DEFAULT_PREFERENCES = {
 } as const;
 
 const ALLOWED_THEMES = ["light", "dark", "sunset"] as const;
+const DEFAULT_DEV_SETTINGS = {
+  azure: {},
+  cloudflare: {},
+  domains: [],
+} as const;
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 
@@ -193,6 +200,173 @@ export const updateSettingsOptimistic = async (
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+};
+
+export const getDeveloperSettings = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
+    }
+
+    if (!isDBConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: "Database not connected",
+      });
+    }
+
+    const userId = req.user.userId;
+    let settings = await DeveloperSettings.findOne({ userId }).lean();
+
+    if (!settings) {
+      settings = (
+        await new DeveloperSettings({
+          userId,
+          ...DEFAULT_DEV_SETTINGS,
+        }).save()
+      ).toObject();
+    }
+
+    return res.status(200).json({
+      success: true,
+      settings: {
+        azure: {
+          accountName: settings.azure?.accountName || "",
+          containerName: settings.azure?.containerName || "",
+          sasToken: settings.azure?.sasTokenEncrypted
+            ? decryptSecret(settings.azure.sasTokenEncrypted)
+            : "",
+        },
+        cloudflare: {
+          accountId: settings.cloudflare?.accountId || "",
+          namespaceId: settings.cloudflare?.namespaceId || "",
+          apiToken: settings.cloudflare?.apiTokenEncrypted
+            ? decryptSecret(settings.cloudflare.apiTokenEncrypted)
+            : "",
+        },
+        domains: settings.domains || [],
+        createdAt: settings.createdAt,
+        updatedAt: settings.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get developer settings error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load developer settings",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+export const updateDeveloperSettings = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
+    }
+
+    if (!isDBConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: "Database not connected",
+      });
+    }
+
+    const userId = req.user.userId;
+    const body = req.body || {};
+
+    const existing = await DeveloperSettings.findOne({ userId }).lean();
+
+    const nextAzure = {
+      accountName:
+        typeof body?.azure?.accountName === "string"
+          ? body.azure.accountName.trim()
+          : existing?.azure?.accountName,
+      containerName:
+        typeof body?.azure?.containerName === "string"
+          ? body.azure.containerName.trim()
+          : existing?.azure?.containerName,
+      sasTokenEncrypted:
+        typeof body?.azure?.sasToken === "string" && body.azure.sasToken.trim()
+          ? encryptSecret(body.azure.sasToken.trim())
+          : existing?.azure?.sasTokenEncrypted,
+    };
+
+    const nextCloudflare = {
+      accountId:
+        typeof body?.cloudflare?.accountId === "string"
+          ? body.cloudflare.accountId.trim()
+          : existing?.cloudflare?.accountId,
+      namespaceId:
+        typeof body?.cloudflare?.namespaceId === "string"
+          ? body.cloudflare.namespaceId.trim()
+          : existing?.cloudflare?.namespaceId,
+      apiTokenEncrypted:
+        typeof body?.cloudflare?.apiToken === "string" &&
+        body.cloudflare.apiToken.trim()
+          ? encryptSecret(body.cloudflare.apiToken.trim())
+          : existing?.cloudflare?.apiTokenEncrypted,
+    };
+
+    const domains = Array.isArray(body?.domains)
+      ? body.domains
+          .filter(
+            (d: any) =>
+              typeof d?.id === "string" && typeof d?.domain === "string",
+          )
+          .map((d: any) => ({
+            id: d.id,
+            domain: d.domain.trim(),
+            ...(d.target &&
+              typeof d.target === "string" && { target: d.target.trim() }),
+          }))
+      : existing?.domains || [];
+
+    const updated = await DeveloperSettings.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          azure: nextAzure,
+          cloudflare: nextCloudflare,
+          domains,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ).lean();
+
+    return res.status(200).json({
+      success: true,
+      settings: {
+        azure: {
+          accountName: updated.azure?.accountName || "",
+          containerName: updated.azure?.containerName || "",
+        },
+        cloudflare: {
+          accountId: updated.cloudflare?.accountId || "",
+          namespaceId: updated.cloudflare?.namespaceId || "",
+        },
+        domains: updated.domains || [],
+      },
+      message: "Developer settings saved",
+    });
+  } catch (error) {
+    console.error("Update developer settings error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save developer settings",
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
 

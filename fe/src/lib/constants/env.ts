@@ -24,3 +24,4 @@ export const STORAGE_KEY = 'hostify-theme';
 export const DEFAULT_THEME: Theme = 'light';
 
 export const isUITesting = env.PUBLIC_ENV === 'uitesting';
+export const isUpcomingFeatureFlagEnabled = env.PUBLIC_UPCOMING_FEATURE_FLAG === 'true';

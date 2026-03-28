@@ -6,49 +6,50 @@
 	import { onMount } from 'svelte';
 	import Link from './Link.svelte';
 	import { ROUTES } from '$lib/routes';
+	import type { UserType } from '$lib/types/user';
+	import type { DeploymentType } from '$lib/types/gh';
+	import type { DeploymentHistoryType } from '$lib/types/deploy';
+	import { localUser } from '$lib/constants/default';
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let user: any = null;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let deployments: any[] = [];
+	let user: UserType | null = null;
+	let deployments: DeploymentType[] = [];
 	let loading = true;
 	let deploymentsLoading = true;
 	let selectedRepo: { name: string; fullName: string; url: string } | null = null;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let selectedRepoDeployments: any[] = [];
+	let selectedRepoDeployments: DeploymentType[] = [];
 
-	// Group deployments by repository
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	$: groupedDeployments = deployments.reduce((acc: any, deployment: any) => {
-		const repoUrl = deployment.repoUrl;
-		if (!acc[repoUrl]) {
-			acc[repoUrl] = {
-				repoUrl,
-				repoName: repoUrl.split('/').pop()?.replace('.git', '') || 'Unknown',
-				fullName: repoUrl.split('/').slice(-2).join('/').replace('.git', ''),
-				deployments: [],
-				totalCount: 0,
-				liveCount: 0,
-				failedCount: 0,
-				deployingCount: 0
-			};
-		}
-		acc[repoUrl].deployments.push(deployment);
-		acc[repoUrl].totalCount++;
+	$: groupedDeployments = deployments.reduce(
+		(acc: Record<string, DeploymentHistoryType>, deployment: DeploymentType) => {
+			const repoUrl = deployment.repoUrl;
+			if (!acc[repoUrl]) {
+				acc[repoUrl] = {
+					repoUrl,
+					repoName: repoUrl.split('/').pop()?.replace('.git', '') || 'Unknown',
+					fullName: repoUrl.split('/').slice(-2).join('/').replace('.git', ''),
+					deployments: [],
+					totalCount: 0,
+					liveCount: 0,
+					failedCount: 0,
+					deployingCount: 0
+				};
+			}
+			acc[repoUrl].deployments.push(deployment);
+			acc[repoUrl].totalCount++;
 
-		if (deployment.status === 'active') acc[repoUrl].liveCount++;
-		else if (deployment.status === 'failed') acc[repoUrl].failedCount++;
-		else if (deployment.status === 'deploying') acc[repoUrl].deployingCount++;
+			if (deployment.status === 'active') acc[repoUrl].liveCount++;
+			else if (deployment.status === 'failed') acc[repoUrl].failedCount++;
+			else if (deployment.status === 'deploying') acc[repoUrl].deployingCount++;
 
-		return acc;
-	}, {});
+			return acc;
+		},
+		{} as Record<string, DeploymentHistoryType>
+	);
 
 	$: repositories = Object.values(groupedDeployments) as Array<{
 		repoUrl: string;
 		repoName: string;
 		fullName: string;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		deployments: any[];
+		deployments: DeploymentType[];
 		totalCount: number;
 		liveCount: number;
 		failedCount: number;
@@ -61,14 +62,9 @@
 			return; // Already redirecting
 		}
 
-		// Fetch current user data
 		try {
 			if (isUITesting) {
-				user = {
-					username: 'Local Dev',
-					email: 'dev@localhost',
-					avatarUrl: ''
-				};
+				user = localUser;
 			} else {
 				const response = await fetch(API_ENDPOINTS.auth.me, {
 					headers: getAuthHeaders()
@@ -103,6 +99,7 @@
 			if (response.ok) {
 				const data = await response.json();
 				deployments = data.deployments || [];
+				console.log('dep', deployments);
 			}
 		} catch (error) {
 			console.error('Failed to fetch deployments:', error);
@@ -113,7 +110,6 @@
 
 	async function handleLogout() {
 		try {
-			// Call logout endpoint
 			await fetch(API_ENDPOINTS.auth.logout, {
 				method: 'POST',
 				headers: getAuthHeaders()
@@ -126,8 +122,8 @@
 			window.location.href = '/';
 		}
 	}
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function openRepoModal(repo: any) {
+	function openRepoModal(repo: DeploymentHistoryType) {
+		console.log(repo);
 		selectedRepo = {
 			name: repo.repoName,
 			fullName: repo.fullName,

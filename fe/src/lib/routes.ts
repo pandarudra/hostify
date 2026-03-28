@@ -3,7 +3,8 @@ export const ROUTES = {
 	auth: '/auth',
 	dashboard: '/dash',
 	deploy: '/deploy',
-	settings: '/settings'
+	settings: '/settings',
+	developerSettings: '/settings/developer'
 } as const;
 
 export type Route = (typeof ROUTES)[keyof typeof ROUTES];

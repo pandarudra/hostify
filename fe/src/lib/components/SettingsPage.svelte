@@ -3,7 +3,7 @@
 	import { browser } from '$app/environment';
 	import { API_ENDPOINTS } from '$lib/constants/api';
 	import { clearAuthToken, getAuthHeaders } from '$lib/constants/helpers';
-	import { ENV, isUITesting } from '$lib/constants/env';
+	import { ENV, isUITesting, isUpcomingFeatureFlagEnabled } from '$lib/constants/env';
 	import Link from '$lib/components/Link.svelte';
 	import { ROUTES } from '$lib/routes';
 	import { requireAuth } from '$lib/utils/routeGuard';
@@ -12,6 +12,8 @@
 
 	import { PREF_STORAGE_KEY } from '$lib/constants/local';
 	import Heatmap from './Heatmap.svelte';
+	import type { UserType } from '$lib/types/user';
+	import { localUser } from '$lib/constants/default';
 
 	type HeatmapRow = { label: string; values: number[] };
 
@@ -35,30 +37,34 @@
 		return labels;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let user: any = null;
-	let loading = true;
-	let saveMessage = '';
-	let saving = false;
-	let testing = false;
+	let user: UserType | null = null;
+	let loading: boolean = true;
+	let saveMessage: string = '';
+	let saving: boolean = false;
+	let testing: boolean = false;
 	let selectedTheme: Theme = 'light';
-	let preferences = {
+	let preferences: {
+		deployEmails: boolean;
+		securityAlerts: boolean;
+		weeklyDigest: boolean;
+		previewComments: boolean;
+	} = {
 		deployEmails: true,
 		securityAlerts: true,
 		weeklyDigest: false,
 		previewComments: true
 	};
-	let notificationEmail = '';
-	let twoFactorEnabled = false;
-	let twoFactorEmail = '';
-	let twoFactorDestination = '';
-	let twoFactorCode = '';
+	let notificationEmail: string = '';
+	let twoFactorEnabled: boolean = false;
+	let twoFactorEmail: string = '';
+	let twoFactorDestination: string = '';
+	let twoFactorCode: string = '';
 	let twoFactorStage: 'idle' | 'code' = 'idle';
-	let twoFactorMessage = '';
-	let twoFactorLoading = false;
-	let twoFactorVerifying = false;
-	let twoFactorDisabling = false;
-	let twoFactorModalOpen = false;
+	let twoFactorMessage: string = '';
+	let twoFactorLoading: boolean = false;
+	let twoFactorVerifying: boolean = false;
+	let twoFactorDisabling: boolean = false;
+	let twoFactorModalOpen: boolean = false;
 	let operationsHeatmap: HeatmapRow[] = buildFallbackHeatmap();
 	let heatmapMonthLabels: string[] = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
 
@@ -86,9 +92,7 @@
 					operationsHeatmap = apiData as HeatmapRow[];
 					heatmapMonthLabels = Array.isArray(payload?.monthLabels)
 						? payload.monthLabels
-						: getRollingMonthLabels(
-								apiData[0]?.values?.length || DEFAULT_HEATMAP_MONTHS
-							);
+						: getRollingMonthLabels(apiData[0]?.values?.length || DEFAULT_HEATMAP_MONTHS);
 					return;
 				}
 			}
@@ -116,11 +120,7 @@
 
 		try {
 			if (isUITesting) {
-				user = {
-					username: 'Local Dev',
-					email: 'dev@localhost',
-					avatarUrl: ''
-				};
+				user = localUser;
 				notificationEmail = user.email;
 			} else {
 				const response = await fetch(API_ENDPOINTS.auth.me, {
@@ -195,7 +195,7 @@
 				payload.notificationEmail = emailToSave;
 			}
 
-			await fetch(API_ENDPOINTS.settings.base, {
+			const res = await fetch(API_ENDPOINTS.settings.base, {
 				method: 'PUT',
 				headers: {
 					...getAuthHeaders(),
@@ -203,6 +203,7 @@
 				},
 				body: JSON.stringify(payload)
 			});
+			console.log(res);
 		} catch (error) {
 			console.error('Failed to sync settings', error);
 		} finally {
@@ -593,7 +594,50 @@
 						</div>
 					</div>
 				</div>
-
+				{#if isUpcomingFeatureFlagEnabled}
+					<section class="cartoon-shadow rounded-none border-3 border-slate-800 bg-white p-6">
+						<div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+							<div>
+								<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+									Developer settings
+								</p>
+								<h3 class="text-2xl font-black text-slate-800">Bring your own cloud keys</h3>
+								<p class="max-w-3xl text-slate-600">
+									Configure Azure storage, Cloudflare API access, and custom domains you want to
+									manage. Use this space to plug in your own infrastructure instead of the shared
+									Hostify defaults.
+								</p>
+								<ul class="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+									<li class="flex items-start gap-2">
+										<i class="fa-solid fa-cloud text-sky-500"></i>
+										<span>Azure storage account, container, and SAS token inputs</span>
+									</li>
+									<li class="flex items-start gap-2">
+										<i class="fa-solid fa-bolt text-amber-500"></i>
+										<span>Cloudflare account, API token, and KV namespace</span>
+									</li>
+									<li class="flex items-start gap-2">
+										<i class="fa-solid fa-globe text-emerald-600"></i>
+										<span>Track the domains you want to point at deployments</span>
+									</li>
+								</ul>
+							</div>
+							<div class="flex flex-col items-start gap-3">
+								<Link
+									href={ROUTES.developerSettings}
+									className="cartoon-shadow hover:cartoon-shadow-lg rounded-none border-3 border-slate-800 bg-sky-500 px-5 py-3 text-sm font-bold text-white transition-all duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5"
+								>
+									<i class="fa-solid fa-code-branch mr-2"></i>
+									Open developer settings
+								</Link>
+								<p class="max-w-xs text-xs font-semibold text-slate-500">
+									Values save to this browser for now; wire them into your automation or share with
+									your team later.
+								</p>
+							</div>
+						</div>
+					</section>
+				{/if}
 				<section class="cartoon-shadow rounded-none border-3 border-slate-800 bg-white p-6">
 					<div class="mb-4 flex items-center justify-between">
 						<div>

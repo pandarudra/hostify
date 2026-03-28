@@ -53,6 +53,24 @@ git clone https://github.com/pandarudra/hostify.git
 cd hostify
 ```
 
+## 🐳 Local Docker (dev)
+
+Quick-start everything (Mongo, Redis KV substitute, backend, frontend) with Docker:
+
+```bash
+# from repo root
+docker compose up --build
+```
+
+Services started:
+
+- MongoDB at `mongodb://localhost:27017/hostify` (auth disabled for local dev)
+- Redis (used as a local KV stand-in) at `localhost:6379`
+- Backend on `http://localhost:8000`
+- Frontend preview on `http://localhost:4173`
+
+You can override any env via `docker compose run`/`-e` or by editing `docker-compose.yml` (GitHub OAuth IDs, secrets, callback URL, etc.). Uploads/clones persist in `be/local` (mounted into the container).
+
 2. Install dependencies:
 
 ```bash

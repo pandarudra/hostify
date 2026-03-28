@@ -26,6 +26,9 @@ export const CF_ACCOUNT_ID = process.env.CF_ACCOUNT_ID as string;
 export const CF_KV_NAMESPACE_ID = process.env.CF_KV_NAMESPACE_ID as string;
 export const CF_API_TOKEN = process.env.CF_API_TOKEN as string;
 
+// developer settings encryption key
+export const DEV_SETTINGS_SECRET = process.env.DEV_SETTINGS_SECRET as string;
+
 // GitHub webhook secret for signature verification
 export const GITHUB_WEBHOOK_SECRET = process.env
   .GITHUB_WEBHOOK_SECRET as string;

@@ -1,6 +1,5 @@
 import { API_URL } from './env';
 
-// API Endpoints - Matches backend implementation
 export const API_ENDPOINTS = {
 	auth: {
 		github: `${API_URL}/api/auth/github`,
@@ -24,7 +23,10 @@ export const API_ENDPOINTS = {
 		base: `${API_URL}/api/settings`,
 		twoFactorInitiate: `${API_URL}/api/settings/2fa/initiate`,
 		twoFactorVerify: `${API_URL}/api/settings/2fa/verify`,
-		twoFactorDisable: `${API_URL}/api/settings/2fa/disable`
+		twoFactorDisable: `${API_URL}/api/settings/2fa/disable`,
+		developer: {
+			base: `${API_URL}/api/settings/developer`
+		}
 	},
 	analytics: {
 		activityHeatmap: `${API_URL}/api/activities/heatmap`

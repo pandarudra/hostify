@@ -6,25 +6,21 @@
 	import Link from '$lib/components/Link.svelte';
 	import SubdomainModal from '$lib/components/SubdomainModal.svelte';
 	import { resolve } from '$app/paths';
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let repositories: any[] = [];
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let filteredRepos: any[] = [];
+	import type { DeploymentType, RepositoryType } from '$lib/types/gh';
+	import type { DeploymentResultType } from '$lib/types/deploy';
+	let repositories: RepositoryType[] = [];
+	let filteredRepos: RepositoryType[] = [];
 	let searchQuery = '';
 	let loading = true;
 	let deploying = false;
-	let deploymentResult: { success: boolean; message: string; url?: string } | null = null;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let selectedRepo: any = null;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let repoDeployments: any[] = [];
+	let deploymentResult: DeploymentResultType | null = null;
+	let selectedRepo: RepositoryType | null = null;
+	let repoDeployments: DeploymentType[] = [];
 	let loadingDeployments = false;
 	let showSubdomainModal = false;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let repoToDeploy: any = null;
+	let repoToDeploy: RepositoryType | null = null;
 	const MAX_SUGGESTIONS = 6;
 
-	// Reactive search filtering - automatically updates when searchQuery or repositories change
 	$: filteredRepos = (() => {
 		const query = searchQuery.toLowerCase().trim();
 		if (!query) {
@@ -53,7 +49,6 @@
 			if (response.ok) {
 				const data = await response.json();
 				repositories = data.repositories || [];
-				// filteredRepos will be set automatically by reactive statement
 			}
 		} catch (error) {
 			console.error('Failed to fetch repositories:', error);
@@ -61,8 +56,7 @@
 			loading = false;
 		}
 	});
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	async function openRepoModal(repo: any) {
+	async function openRepoModal(repo: RepositoryType) {
 		selectedRepo = repo;
 		loadingDeployments = true;
 		repoDeployments = [];
@@ -75,14 +69,14 @@
 			if (response.ok) {
 				const data = await response.json();
 				const allDeployments = data.deployments || [];
-				// Filter deployments for this specific repo
+
 				repoDeployments = allDeployments.filter(
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(d: any) =>
+					(d: DeploymentType) =>
 						d.repoUrl === repo.htmlUrl ||
 						d.repoUrl === repo.cloneUrl ||
 						d.repoUrl.includes(repo.fullName)
 				);
+				console.log('repo dep', repoDeployments);
 			}
 		} catch (error) {
 			console.error('Failed to fetch repo deployments:', error);
@@ -95,9 +89,8 @@
 		selectedRepo = null;
 		repoDeployments = [];
 	}
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function handleDeploy(repo: any) {
-		// Store the repo and show subdomain modal
+	function handleDeploy(repo: RepositoryType | null) {
+		if (!repo) return;
 		repoToDeploy = repo;
 		showSubdomainModal = true;
 	}
@@ -116,10 +109,6 @@
 		deploymentResult = null;
 
 		try {
-			console.log('Deploying repo:', repoToDeploy);
-			console.log('Repo URL:', repoToDeploy.htmlUrl);
-			console.log('Subdomain:', subdomain);
-
 			const response = await fetch(API_ENDPOINTS.deploy.create, {
 				method: 'POST',
 				headers: {
@@ -134,8 +123,6 @@
 
 			const data = await response.json();
 
-			console.log(data);
-
 			if (response.ok) {
 				deploymentResult = {
 					success: true,
@@ -143,7 +130,6 @@
 					url: data.deployment?.url
 				};
 
-				// If modal is open, refresh the deployments list
 				if (selectedRepo) {
 					await openRepoModal(selectedRepo);
 				}
@@ -397,7 +383,7 @@
 						</div>
 					{:else}
 						<div class="space-y-3">
-							{#each repoDeployments as deployment (deployment._id || deployment.subdomain)}
+							{#each repoDeployments as deployment (deployment.id || deployment.subdomain)}
 								<div class="cartoon-shadow rounded-none border-2 border-slate-800 bg-white p-4">
 									<div class="flex items-center justify-between">
 										<div class="flex-1">
