@@ -12,29 +12,47 @@
 
 	import { PREF_STORAGE_KEY } from '$lib/constants/local';
 	import Heatmap from './Heatmap.svelte';
-	import type { UserType } from '$lib/types/user';
+	import type { twoFactorStageType, UserType } from '$lib/types/user';
 	import { localUser } from '$lib/constants/default';
 
-	type HeatmapRow = { label: string; values: number[] };
+	type ContributionEntry = { date: string; count: number };
 
-	const WEEK_LABELS: string[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-	const DEFAULT_HEATMAP_MONTHS = 12;
+	const DAY_MS = 24 * 60 * 60 * 1000;
+	const DEFAULT_HEATMAP_WEEKS = 53;
 
-	function buildFallbackHeatmap(months: number = DEFAULT_HEATMAP_MONTHS): HeatmapRow[] {
-		return WEEK_LABELS.map((label, idx) => ({
-			label,
-			values: Array.from({ length: months }, (_v, mIdx) => Math.max(0, (months - mIdx + idx) % 5))
-		}));
+	function toUtcDayStart(date: Date): Date {
+		return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 	}
 
-	function getRollingMonthLabels(count: number): string[] {
-		const now = new Date();
-		const labels: string[] = [];
-		for (let i = count - 1; i >= 0; i--) {
-			const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-			labels.push(date.toLocaleString('en', { month: 'short' }));
+	function buildFallbackContributions(weeks: number = DEFAULT_HEATMAP_WEEKS): ContributionEntry[] {
+		const totalDays = weeks * 7;
+		const today = toUtcDayStart(new Date());
+		const start = new Date(today.getTime() - (totalDays - 1) * DAY_MS);
+		const entries: ContributionEntry[] = [];
+
+		for (let i = 0; i < totalDays; i++) {
+			const date = new Date(start.getTime() + i * DAY_MS);
+			const variation = (Math.sin(i / 5) + 1) * 2 + (i % 6 === 0 ? 4 : 0);
+			entries.push({
+				date: date.toISOString(),
+				count: Math.max(0, Math.round(variation))
+			});
 		}
-		return labels;
+
+		return entries;
+	}
+
+	function sanitizeContributions(raw: unknown[]): ContributionEntry[] {
+		const cleaned: ContributionEntry[] = [];
+		for (const item of raw) {
+			if (typeof item !== 'object' || item === null) continue;
+			const maybe = item as { date?: unknown; count?: unknown };
+			if (typeof maybe.date !== 'string') continue;
+			const count =
+				typeof maybe.count === 'number' && Number.isFinite(maybe.count) ? maybe.count : 0;
+			cleaned.push({ date: maybe.date, count });
+		}
+		return cleaned;
 	}
 
 	let user: UserType | null = null;
@@ -59,14 +77,13 @@
 	let twoFactorEmail: string = '';
 	let twoFactorDestination: string = '';
 	let twoFactorCode: string = '';
-	let twoFactorStage: 'idle' | 'code' = 'idle';
+	let twoFactorStage: twoFactorStageType = 'idle';
 	let twoFactorMessage: string = '';
 	let twoFactorLoading: boolean = false;
 	let twoFactorVerifying: boolean = false;
 	let twoFactorDisabling: boolean = false;
 	let twoFactorModalOpen: boolean = false;
-	let operationsHeatmap: HeatmapRow[] = buildFallbackHeatmap();
-	let heatmapMonthLabels: string[] = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
+	let operationsContributions: ContributionEntry[] = [];
 
 	const unsubscribe = theme.subscribe((value) => (selectedTheme = value));
 	onDestroy(() => unsubscribe());
@@ -74,8 +91,7 @@
 	async function loadActivityHeatmap() {
 		try {
 			if (isUITesting) {
-				operationsHeatmap = buildFallbackHeatmap();
-				heatmapMonthLabels = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
+				operationsContributions = buildFallbackContributions();
 				return;
 			}
 
@@ -83,25 +99,18 @@
 				headers: getAuthHeaders()
 			});
 
-			console.log(response);
-
 			if (response.ok) {
 				const payload = await response.json();
-				const apiData = Array.isArray(payload?.data) ? payload.data : [];
-				if (apiData.length) {
-					operationsHeatmap = apiData as HeatmapRow[];
-					heatmapMonthLabels = Array.isArray(payload?.monthLabels)
-						? payload.monthLabels
-						: getRollingMonthLabels(apiData[0]?.values?.length || DEFAULT_HEATMAP_MONTHS);
-					return;
-				}
+				const rawData: unknown[] = Array.isArray(payload?.data) ? payload.data : [];
+				const sanitized = sanitizeContributions(rawData);
+				operationsContributions = sanitized.length ? sanitized : [];
+				return;
 			}
 		} catch (error) {
 			console.error('Failed to load activity heatmap', error);
 		}
 
-		operationsHeatmap = buildFallbackHeatmap();
-		heatmapMonthLabels = getRollingMonthLabels(DEFAULT_HEATMAP_MONTHS);
+		operationsContributions = [];
 	}
 
 	onMount(async () => {
@@ -203,7 +212,7 @@
 				},
 				body: JSON.stringify(payload)
 			});
-			console.log(res);
+			void res;
 		} catch (error) {
 			console.error('Failed to sync settings', error);
 		} finally {
@@ -681,9 +690,9 @@
 					<div class="cartoon-shadow rounded-none border-3 border-slate-800 bg-white p-6">
 						<h3 class="mb-3 text-xl font-bold text-slate-800">Notifications</h3>
 						<div class="mb-4 space-y-2 text-sm text-slate-600">
-							<label class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+							<p class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
 								Notification email
-							</label>
+							</p>
 							<div class="flex flex-col gap-2 sm:flex-row sm:items-center">
 								<input
 									type="email"
@@ -798,7 +807,7 @@
 					</div>
 				</section>
 
-				<Heatmap data={operationsHeatmap} theme={selectedTheme} monthLabels={heatmapMonthLabels} />
+				<Heatmap contributions={operationsContributions} theme={selectedTheme} />
 			</div>
 		{/if}
 	</main>

@@ -8,6 +8,7 @@ import crypto from "crypto";
 import { createGitHubWebhook } from "../utils/github.js";
 import { getProjectMetadata } from "../utils/cloudflare.js";
 import { sendUserNotification } from "../services/notifications.js";
+import { incrementUserHeatmap } from "../services/heatmap.js";
 
 /**
  * Verify deployment status - check if subdomain is properly configured
@@ -169,6 +170,8 @@ export const deployWithAuth = async (
       deploymentUrl: result.url,
       lastDeployedAt: new Date(),
     });
+
+    await incrementUserHeatmap(user._id);
 
     const responsePayload = {
       success: true,

@@ -2,6 +2,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../utils/jwt.js";
 import { User } from "../models/User.js";
 import { Deployment } from "../models/Deployment.js";
+import { Heatmap } from "../models/Heatmap.js";
 import { isDBConnected } from "../config/database.js";
 
 interface GitHubRepo {
@@ -296,47 +297,22 @@ export const deleteDeployment = async (
   }
 };
 
-type HeatmapSeries = { label: string; values: number[] };
-const HEATMAP_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function buildMonthBuckets(months: number) {
-  const now = new Date();
-  const buckets = [] as { label: string; start: Date }[];
-
-  for (let i = months - 1; i >= 0; i--) {
-    const date = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1),
-    );
-    const label = date.toLocaleString("en", { month: "short" });
-    buckets.push({
-      label,
-      start: date,
-    });
-  }
-
-  return buckets;
+function toUtcDayStart(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
 }
 
-function getMonthIndex(date: Date, buckets: { label: string; start: Date }[]) {
-  if (!buckets.length) return -1;
-
-  for (let i = 0; i < buckets.length; i++) {
-    const bucket = buckets[i];
-    if (!bucket) continue;
-    const next = new Date(
-      Date.UTC(
-        bucket.start.getUTCFullYear(),
-        bucket.start.getUTCMonth() + 1,
-        1,
-      ),
-    );
-    if (date >= bucket.start && date < next) return i;
-  }
-  return -1;
+function getUtcWeekStartSunday(date: Date): Date {
+  const dayStart = toUtcDayStart(date);
+  const shift = dayStart.getUTCDay();
+  return new Date(dayStart.getTime() - shift * DAY_MS);
 }
 
 /**
- * Build a weekday x month heatmap of user activities (last login + deploy events)
+ * Build a weekday x week heatmap from persisted activity records
  */
 export const getActivityHeatmap = async (
   req: AuthRequest,
@@ -355,12 +331,74 @@ export const getActivityHeatmap = async (
         .json({ success: false, message: "Database not connected" });
     }
 
-    const MONTHS = 12;
-    const buckets = buildMonthBuckets(MONTHS);
-    const series: HeatmapSeries[] = HEATMAP_WEEKDAYS.map((label) => ({
-      label,
-      values: Array(MONTHS).fill(0),
-    }));
+    const WEEKS = 53;
+    const today = toUtcDayStart(new Date());
+    const startRange = getUtcWeekStartSunday(
+      new Date(today.getTime() - (WEEKS - 1) * 7 * DAY_MS),
+    );
+    const endRange = new Date(startRange.getTime() + WEEKS * 7 * DAY_MS);
+
+    const records = await Heatmap.find({
+      userId: req.user.userId,
+      date: { $gte: startRange, $lt: endRange },
+    })
+      .select("date count")
+      .lean();
+
+    const countsByDay = new Map<string, number>();
+
+    for (const record of records) {
+      const ts =
+        record.date instanceof Date ? record.date : new Date(record.date);
+      if (Number.isNaN(ts.getTime())) continue;
+
+      const day = toUtcDayStart(ts);
+      const safeCount = typeof record.count === "number" ? record.count : 0;
+      const isoKey = day.toISOString();
+      countsByDay.set(
+        isoKey,
+        (countsByDay.get(isoKey) ?? 0) + Math.max(0, safeCount),
+      );
+    }
+
+    const data = Array.from(countsByDay.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Get activity heatmap error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to build activity heatmap",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
+
+/**
+ * Backfill historical activity into Heatmap collection.
+ * Idempotent: inserts only missing day buckets and does not mutate existing rows.
+ */
+export const backfillActivityHeatmap = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<any> => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
+    }
+
+    if (!isDBConnected()) {
+      return res
+        .status(503)
+        .json({ success: false, message: "Database not connected" });
+    }
 
     const deployments = await Deployment.find({ userId: req.user.userId })
       .select("createdAt lastDeployedAt")
@@ -370,32 +408,29 @@ export const getActivityHeatmap = async (
       .select("lastLoginAt")
       .lean();
 
+    const countsByDay = new Map<string, number>();
     const seen = new Set<string>();
 
     const bump = (ts: Date, key: string) => {
-      const monthIndex = getMonthIndex(ts, buckets);
-      if (monthIndex === -1) return;
-
-      const weekdayIndex = (ts.getUTCDay() + 6) % 7; // Monday=0
-      const row = series[weekdayIndex];
-      if (!row?.values) return;
-
-      const isoDayKey = ts.toISOString().slice(0, 10);
-      const dedupeKey = `${isoDayKey}-${key}`;
+      const day = toUtcDayStart(ts);
+      if (Number.isNaN(day.getTime())) return;
+      const dayKey = day.toISOString().slice(0, 10);
+      const dedupeKey = `${dayKey}-${key}`;
       if (seen.has(dedupeKey)) return;
-      seen.add(dedupeKey);
 
-      row.values[monthIndex] = (row.values[monthIndex] ?? 0) + 1;
+      seen.add(dedupeKey);
+      countsByDay.set(dayKey, (countsByDay.get(dayKey) ?? 0) + 1);
     };
 
     for (const deployment of deployments) {
+      const deploymentId = deployment._id?.toString?.() ?? "na";
       const candidates = [
         deployment.createdAt,
         deployment.lastDeployedAt,
       ].filter(Boolean) as Date[];
 
       for (const ts of candidates) {
-        bump(ts, `deploy-${deployment._id?.toString?.() ?? "na"}`);
+        bump(ts, `deploy-${deploymentId}`);
       }
     }
 
@@ -403,16 +438,63 @@ export const getActivityHeatmap = async (
       bump(user.lastLoginAt, "last-login");
     }
 
+    if (!countsByDay.size) {
+      return res.status(200).json({
+        success: true,
+        message: "No historical activity found to backfill",
+        inserted: 0,
+        skipped: 0,
+      });
+    }
+
+    const dayDates = Array.from(countsByDay.keys()).map(
+      (dayKey) => new Date(`${dayKey}T00:00:00.000Z`),
+    );
+
+    const existingRows = await Heatmap.find({
+      userId: req.user.userId,
+      date: { $in: dayDates },
+    })
+      .select("date")
+      .lean();
+
+    const existingDayKeys = new Set(
+      existingRows
+        .map((row) =>
+          (row.date instanceof Date ? row.date : new Date(row.date))
+            .toISOString()
+            .slice(0, 10),
+        )
+        .filter(Boolean),
+    );
+
+    const docsToInsert: Array<{ userId: string; date: Date; count: number }> =
+      [];
+
+    for (const [dayKey, count] of countsByDay.entries()) {
+      if (existingDayKeys.has(dayKey)) continue;
+      docsToInsert.push({
+        userId: req.user.userId,
+        date: new Date(`${dayKey}T00:00:00.000Z`),
+        count,
+      });
+    }
+
+    if (docsToInsert.length) {
+      await Heatmap.insertMany(docsToInsert, { ordered: false });
+    }
+
     return res.status(200).json({
       success: true,
-      data: series,
-      monthLabels: buckets.map((b) => b.label),
+      message: "Heatmap backfill completed",
+      inserted: docsToInsert.length,
+      skipped: countsByDay.size - docsToInsert.length,
     });
   } catch (error) {
-    console.error("Get activity heatmap error:", error);
+    console.error("Backfill activity heatmap error:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to build activity heatmap",
+      message: "Failed to backfill activity heatmap",
       error: error instanceof Error ? error.message : String(error),
     });
   }

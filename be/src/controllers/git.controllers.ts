@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { uploadtoServer } from "../helpers/upload.js";
+import { Deployment } from "../models/Deployment.js";
+import { incrementUserHeatmap } from "../services/heatmap.js";
 import {
   getProjectByWebhookToken,
   saveProjectMetadata,
@@ -94,6 +96,23 @@ export const githubWebhook = async (
         folderName: result.folderName, // ✅ Update to new folder name
         lastDeployedAt: new Date().toISOString(),
       });
+
+      const deployment = await Deployment.findOneAndUpdate(
+        { subdomain: project.subdomain },
+        {
+          $set: {
+            folderName: result.folderName,
+            deploymentUrl: result.url,
+            lastDeployedAt: new Date(),
+            status: "active",
+          },
+        },
+        { new: true },
+      ).select("userId");
+
+      if (deployment?.userId) {
+        await incrementUserHeatmap(deployment.userId);
+      }
 
       console.log(`   ✅ Successfully redeployed: ${result.url}`);
 

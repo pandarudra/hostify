@@ -1,203 +1,418 @@
-# Hostify
+# Hostify 🚀
 
-A Node.js backend service that automatically deploys static websites from GitHub repositories to Azure Blob Storage with static website hosting.
+> **Deploy static websites from GitHub to the cloud in one click** — Like Vercel/Netlify, but self-hosted with full control.
 
-## ✨ NEW: GitHub OAuth Authentication
-
-**Now with one-click deployment!** Users can:
-
-- 🔐 Login with GitHub OAuth
-- 📦 Browse all their repositories
-- 🚀 Deploy with a single click (no manual tokens!)
-- 🔄 Automatic webhook creation
-- 📊 Manage all deployments from dashboard
-
-👉 **[Get Started with OAuth →](docs/OAUTH_IMPLEMENTATION.md)**
+A modern full-stack deployment platform that automatically deploys static websites from GitHub repositories to Azure Blob Storage with automatic webhook-driven rebuilds, custom subdomains, and a beautiful web dashboard.
 
 ---
 
-## 🚀 Features
+## 🎯 What is Hostify?
 
-- **🆕 GitHub OAuth Login**: One-click authentication and deployment
-- **🆕 Repository Browser**: See and deploy all your GitHub repos
-- **🆕 Automatic Webhooks**: Webhooks created automatically on deploy
-- **🆕 Deployment Dashboard**: Track and manage all your deployments
-- **Auto-Redeploy on Push**: Automatically redeploys when you push to GitHub (like Vercel/Netlify)
-- **GitHub Webhook Integration**: Secure webhook endpoint with signature verification
-- **Custom Subdomain Support**: Set your own subdomain or use the default folder name
-- **Cloudflare KV Storage**: Subdomain-to-folder mappings stored in Cloudflare KV for easy routing
-- **Project Metadata Tracking**: Store and retrieve complete deployment information
-- **Multi-Project Support**: Deploy the same repo multiple times with different subdomains
-- **GitHub Repository Cloning**: Automatically clones any public GitHub repository
-- **Azure Blob Storage Integration**: Uploads files to Azure Storage with static website hosting
-- **Smart Path Resolution**: Automatically fixes absolute paths in HTML files for subfolder hosting
-- **Automatic Cleanup**: Removes local files after successful deployment
-- **Content-Type Detection**: Properly sets MIME types for all file types
-- **Optimized Caching**: Implements cache control headers for better performance
-- **Development & Production Modes**: Flexible configuration for local dev and production deployments
-- **API Documentation**: Interactive API docs with Swagger UI and ReDoc
+**Hostify** is a free, open-source alternative to Vercel/Netlify that lets you:
 
-## 📋 Prerequisites
+- **Deploy static websites** from any public GitHub repository
+- **Auto-redeploy on push** with GitHub webhooks (like Vercel/Netlify)
+- **Use custom subdomains** or auto-generated ones
+- **Manage deployments** from an intuitive dashboard
+- **Authenticate with GitHub OAuth** for secure, seamless login
 
-- Node.js (v18 or higher)
-- npm or yarn
-- Azure Storage Account with static website hosting enabled
-- Azure Storage SAS token with appropriate permissions
+### Tech Stack
 
-## 🛠️ Installation
+**Backend:**
 
-1. Clone the repository:
+- Express.js with TypeScript
+- MongoDB for user data and deployment tracking
+- Azure Blob Storage for production hosting
+- Cloudflare KV for subdomain routing
+- GitHub Webhooks for auto-redeploy
+
+**Frontend:**
+
+- SvelteKit with TypeScript
+- Tailwind CSS for styling
+- Vite for fast development
+- Playwright for E2E testing
+
+**Infrastructure:**
+
+- Docker & Docker Compose for local development
+- GitHub OAuth 2.0 for authentication
+
+---
+
+## ✨ Key Features
+
+**🔐 Authentication & Security:**
+
+- GitHub OAuth 2.0 login
+- Secure webhook signature verification
+- User account management
+- 2FA support for enhanced security
+
+**📦 Deployment:**
+
+- One-click GitHub repository deployment
+- Automatic webhook-driven redeployment on push
+- Deploy the same repo multiple times with different subdomains
+- Support for public GitHub repositories
+- Smart automatic path fixing for asset loading
+- Proper MIME type detection and content-type headers
+
+**🌐 Subdomain Management:**
+
+- Custom subdomain support
+- Auto-generated subdomain fallback
+- Cloudflare KV-powered subdomain routing
+- Subdomain-to-deployment mapping
+
+**📊 Dashboard:**
+
+- Browse personal GitHub repositories
+- View all active deployments
+- Track deployment history
+- Manage automatic webhook configuration
+- Real-time deployment status
+
+**☁️ Cloud Integration:**
+
+- Azure Blob Storage integration
+- Cloudflare KV for routing
+- GitHub API integration
+- Automatic cleanup of local files
+
+**🚀 Performance & Optimization:**
+
+- Optimized caching headers (1h for HTML, 1y for assets)
+- Automatic cleanup of temporary files
+- Development vs Production modes
+- Local file system support for development
+
+---
+
+## 📦 Prerequisites
+
+## � Prerequisites
+
+### Required
+
+- **Node.js** v18 or higher
+- **npm** or **yarn**
+- **Git** for cloning the repository
+
+### For Production Deployment
+
+- **Azure Storage Account** with static website hosting enabled
+- **Azure Storage SAS Token** with appropriate permissions (Read, Write, Delete, List)
+- **Cloudflare Account** with Workers KV enabled (optional for development)
+- **GitHub OAuth Application** (for authentication)
+
+### For Development
+
+- **Docker** and **Docker Compose** (recommended for containerized dev)
+- **MongoDB** (or use Docker container)
+- **Redis** (or use Docker container for local KV substitute)
+
+---
+
+## 🚀 Quick Start
+
+### Option 1: Docker (Recommended for Development)
+
+The fastest way to get everything running locally:
 
 ```bash
+# Clone the repository
 git clone https://github.com/pandarudra/hostify.git
 cd hostify
+
+# Start all services (MongoDB, Redis, Backend, Frontend)
+docker compose up --build
+
+# Services running at:
+# - Frontend: http://localhost:4173
+# - Backend: http://localhost:8000
+# - MongoDB: mongodb://localhost:27017
+# - Redis: localhost:6379
 ```
 
-## 🐳 Local Docker (dev)
-
-Quick-start everything (Mongo, Redis KV substitute, backend, frontend) with Docker:
+**To stop all services:**
 
 ```bash
-# from repo root
-docker compose up --build
+docker compose down
 ```
 
-Services started:
+### Option 2: Local Development Setup
 
-- MongoDB at `mongodb://localhost:27017/hostify` (auth disabled for local dev)
-- Redis (used as a local KV stand-in) at `localhost:6379`
-- Backend on `http://localhost:8000`
-- Frontend preview on `http://localhost:4173`
+If you prefer to run services locally:
 
-You can override any env via `docker compose run`/`-e` or by editing `docker-compose.yml` (GitHub OAuth IDs, secrets, callback URL, etc.). Uploads/clones persist in `be/local` (mounted into the container).
+```bash
+# Clone the repository
+git clone https://github.com/pandarudra/hostify.git
+cd hostify
 
-2. Install dependencies:
+# Install all dependencies
+make install
+
+# Or manually:
+cd be && npm install && cd ..
+cd fe && npm install && cd ..
+```
+
+### Option 3: Manual Backend-Only Setup
+
+If you only want to run the backend:
 
 ```bash
 cd be
 npm install
+
+# Create .env file (see Configuration section)
+cp .env.example .env
+# Edit .env with your configuration
+
+npm run dev
 ```
 
-3. Create a `.env` file in the `be` directory:
+---
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Create a `.env` file in the `be/` directory with the following variables:
 
 ```env
+# Server Configuration
 PORT=8000
-UPLOAD_DIR=./local
+ENV=dev                    # or 'production'
+UPLOAD_DIR=./local         # Local directory for temporary file storage
 
-# Azure Storage Configuration
+# Database Configuration
+MONGODB_URI=mongodb://mongo:27017/hostify
+DATABASE_NAME=hostify
+
+# Frontend URLs
+FRONTEND_URL=http://localhost:4173
+LOCAL_FRONTEND_URL=http://localhost:4173
+
+# GitHub OAuth (Required for authentication)
+GITHUB_CLIENT_ID=your-github-oauth-client-id
+GITHUB_CLIENT_SECRET=your-github-oauth-client-secret
+GITHUB_CALLBACK_URL=http://localhost:8000/api/auth/github/callback
+
+# GitHub Webhook (Required for auto-redeploy)
+GITHUB_WEBHOOK_SECRET=your-webhook-secret
+
+# Azure Storage (Required for production)
 AZURE_STORAGE_ACCOUNT_NAME=your-storage-account-name
-AZURE_STORAGE_CONTAINER_NAME=$web
-AZURE_STORAGE_SAS_TOKEN=your-sas-token-here
+AZURE_STORAGE_CONTAINER_NAME=$web                  # Use $web for static hosting
+AZURE_STORAGE_SAS_TOKEN=sv=2024-11-04&ss=...
 
-# Environment Mode
-ENV=dev
-# ENV=production
-
-# Cloudflare Configuration (Optional in dev, Required in production)
+# Cloudflare KV (Optional for dev, Required for production)
 CF_ACCOUNT_ID=your-cloudflare-account-id
 CF_KV_NAMESPACE_ID=your-kv-namespace-id
 CF_API_TOKEN=your-cloudflare-api-token
 
-# GitHub Webhook Secret (Required for auto-redeploy)
-GITHUB_WEBHOOK_SECRET=your-webhook-secret-here
+# Redis (If using external Redis)
+# REDIS_URL=redis://localhost:6379
 ```
 
-## 🔧 Configuration
+### Environment Variables Reference
+
+| Variable                       | Type   | Required | Default | Description                      |
+| ------------------------------ | ------ | -------- | ------- | -------------------------------- |
+| `PORT`                         | number | Yes      | 8000    | Server port                      |
+| `ENV`                          | string | Yes      | dev     | `dev` or `production`            |
+| `UPLOAD_DIR`                   | string | Yes      | ./local | Temporary file storage directory |
+| `MONGODB_URI`                  | string | Yes      | -       | MongoDB connection string        |
+| `DATABASE_NAME`                | string | Yes      | hostify | Database name                    |
+| `FRONTEND_URL`                 | string | Yes      | -       | Production frontend URL          |
+| `LOCAL_FRONTEND_URL`           | string | Yes      | -       | Local frontend URL (dev)         |
+| `GITHUB_CLIENT_ID`             | string | Yes\*    | -       | GitHub OAuth app ID              |
+| `GITHUB_CLIENT_SECRET`         | string | Yes\*    | -       | GitHub OAuth app secret          |
+| `GITHUB_CALLBACK_URL`          | string | Yes\*    | -       | GitHub OAuth callback URL        |
+| `GITHUB_WEBHOOK_SECRET`        | string | No       | -       | Webhook signature secret         |
+| `AZURE_STORAGE_ACCOUNT_NAME`   | string | Yes\*    | -       | Azure storage account            |
+| `AZURE_STORAGE_CONTAINER_NAME` | string | Yes\*    | $web    | Azure storage container          |
+| `AZURE_STORAGE_SAS_TOKEN`      | string | Yes\*    | -       | Azure SAS token                  |
+| `CF_ACCOUNT_ID`                | string | Prod     | -       | Cloudflare account ID            |
+| `CF_KV_NAMESPACE_ID`           | string | Prod     | -       | Cloudflare KV namespace          |
+| `CF_API_TOKEN`                 | string | Prod     | -       | Cloudflare API token             |
+
+**\* Required for OAuth authentication**  
+**\* Required for Azure production deployment**
 
 ### Azure Storage Setup
 
-1. Create an Azure Storage Account
-2. Enable **Static website hosting** in your storage account
-3. Generate a SAS token with the following permissions:
-   - Read, Write, Delete, List
-   - Container and Object resource types
-   - Set appropriate expiration date
+### Azure Storage Setup
 
-4. Use the `$web` container for static website hosting
+For production deployments, you'll need an Azure Storage Account:
+
+1. **Create a Storage Account** in Azure Portal
+2. **Enable Static website hosting**:
+   - Go to Storage Account → Static website
+   - Enable it and note the "Primary endpoint"
+   - This creates a `$web` container automatically
+
+3. **Generate a SAS Token**:
+   - Storage Account → Shared access signature
+   - Select permissions: **Read, Write, Delete, List**
+   - Resource types: **Container, Object**
+   - Set appropriate expiration date
+   - Click "Generate SAS and connection string"
+   - Copy the SAS token (starts with `sv=`)
+
+4. **Add to your `.env`**:
+   ```env
+   AZURE_STORAGE_ACCOUNT_NAME=your-account-name
+   AZURE_STORAGE_CONTAINER_NAME=$web
+   AZURE_STORAGE_SAS_TOKEN=sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlac&se=2025-12-31...
+   ```
+
+### GitHub OAuth Setup
+
+To enable user authentication:
+
+1. **Create GitHub OAuth App**:
+   - Go to [GitHub Settings → Developer settings → OAuth Apps](https://github.com/settings/developers)
+   - Click "New OAuth App"
+   - Fill in the application details:
+     - **Application name**: Hostify
+     - **Homepage URL**: `http://localhost:8000` (dev) or your production URL
+     - **Authorization callback URL**: `http://localhost:8000/api/auth/github/callback`
+
+2. **Get your credentials**:
+   - Copy "Client ID" and "Client Secret"
+   - Add to your `.env`:
+     ```env
+     GITHUB_CLIENT_ID=your-client-id
+     GITHUB_CLIENT_SECRET=your-client-secret
+     GITHUB_CALLBACK_URL=http://localhost:8000/api/auth/github/callback
+     ```
 
 ### Cloudflare KV Setup
 
-1. Create a **Workers KV Namespace** in your Cloudflare account
-2. Generate an **API Token** with KV permissions:
-   - Account > Workers KV Storage > Edit
-3. Get your **Account ID** and **Namespace ID** from Cloudflare dashboard
-4. Add credentials to your `.env` file
+For production subdomain routing (optional for dev):
 
-**Note**: Cloudflare KV is optional in development mode but required for production deployments.
+1. **Create a KV Namespace**:
+   - Go to Cloudflare Dashboard → Workers & Pages → KV
+   - Click "Create namespace"
+   - Name it something like `hostify-kv`
 
-### Environment Variables
+2. **Get your credentials**:
+   - Copy your **Account ID** (visible in Cloudflare Dashboard)
+   - Copy the **Namespace ID** from KV page
+3. **Create API Token**:
+   - Cloudflare Dashboard → My Profile → API Tokens
+   - Click "Create Token"
+   - Select template "Edit Cloudflare Workers"
+   - Add permission: "Account > Workers KV Storage > Edit"
+   - Create and copy the token
 
-| Variable                       | Description                                      | Required    | Example                |
-| ------------------------------ | ------------------------------------------------ | ----------- | ---------------------- |
-| `PORT`                         | Server port                                      | Yes         | `8000`                 |
-| `UPLOAD_DIR`                   | Local temp directory for cloning                 | Yes         | `./local`              |
-| `AZURE_STORAGE_ACCOUNT_NAME`   | Azure storage account name                       | Yes         | `hostify`              |
-| `AZURE_STORAGE_CONTAINER_NAME` | Container name (use `$web` for static hosting)   | Yes         | `$web`                 |
-| `AZURE_STORAGE_SAS_TOKEN`      | SAS token for authentication                     | Yes         | `sv=2024-11-04&ss=...` |
-| `ENV`                          | Environment mode (`dev` or `production`)         | Yes         | `dev`                  |
-| `CF_ACCOUNT_ID`                | Cloudflare Account ID                            | Prod        | `abc123...`            |
-| `CF_KV_NAMESPACE_ID`           | Cloudflare KV Namespace ID                       | Prod        | `xyz789...`            |
-| `CF_API_TOKEN`                 | Cloudflare API Token with KV permissions         | Prod        | `token...`             |
-| `GITHUB_WEBHOOK_SECRET`        | Secret for GitHub webhook signature verification | Recommended | `your-secret`          |
+4. **Add to your `.env`**:
+   ```env
+   CF_ACCOUNT_ID=abc123xyz...
+   CF_KV_NAMESPACE_ID=xyz789abc...
+   CF_API_TOKEN=your-api-token...
+   ```
 
-## 🚦 Usage
+---
 
-### Development Mode
+## 🚀 Usage Guide
+
+### Development
+
+### Development
+
+**Using Makefile (recommended):**
 
 ```bash
-make start
+# Start both backend and frontend in tmux session
+make dev
+
+# Or run individually:
+make run-backend   # Backend only
+make run-frontend  # Frontend only
 ```
 
-This starts the server with auto-reload on file changes.
+**Using npm directly:**
+
+```bash
+# Backend (from be/ directory)
+npm run dev
+
+# Frontend (from fe/ directory)
+npm run dev
+```
 
 ### Production Build
 
 ```bash
+# Backend
+cd be
 npm run build
 npm start
+
+# Frontend
+cd fe
+npm run build
+npm preview
 ```
 
-### 📚 API Documentation
+### Make Commands
 
-Once the server is running, you can access interactive API documentation:
+```bash
+make install              # Install all dependencies
+make install-backend      # Install backend deps only
+make install-frontend     # Install frontend deps only
+make dev                  # Start both in tmux
+make run-backend          # Run backend only
+make run-frontend         # Run frontend only
+make stop                 # Stop dev environment
+make restart              # Restart dev environment
+make clean-local          # Clean local files
+make test-prod-backend    # Test against production
+make test-local-backend   # Test against local
+```
+
+---
+
+## 📚 API Documentation
+
+### Interactive API Docs
+
+Once the backend is running, access interactive documentation:
 
 - **Swagger UI**: [http://localhost:8000/api-docs](http://localhost:8000/api-docs)
-  - Interactive API explorer with "Try it out" functionality
-  - Test endpoints directly from your browser
+  - Try API endpoints directly in your browser
   - View request/response schemas
+  - See example payloads
 
 - **ReDoc**: [http://localhost:8000/api-docs-redoc](http://localhost:8000/api-docs-redoc)
-  - Clean, responsive API documentation
-  - Better for reading and understanding the API
-  - Includes detailed schemas and examples
+  - Clean, organized API reference
+  - Detailed explanations and examples
+  - Better for reading and sharing
 
 - **OpenAPI JSON**: [http://localhost:8000/swagger.json](http://localhost:8000/swagger.json)
   - Raw OpenAPI 3.0 specification
-  - Can be imported into Postman, Insomnia, or other API tools
+  - Import into Postman, Insomnia, etc.
 
-### API Endpoint
+### Core Endpoints
 
-#### Deploy a GitHub Repository
+#### Deploy Endpoint
 
-**POST** `/api/v1/deploy`
+**POST** `/api/v1/deploy` — Deploy a GitHub repository
 
-**Request Body:**
+**Request:**
 
 ```json
 {
   "ghlink": "https://github.com/username/repository.git",
-  "subdomain": "my-custom-subdomain" // Optional: defaults to folder name if not provided
+  "subdomain": "my-custom-subdomain"
 }
 ```
 
-**Parameters:**
-
-| Parameter   | Type   | Required | Description                                               |
-| ----------- | ------ | -------- | --------------------------------------------------------- |
-| `ghlink`    | string | Yes      | GitHub repository URL (must be public)                    |
-| `subdomain` | string | No       | Custom subdomain name (defaults to generated folder name) |
-
-**Success Response:**
+**Response:**
 
 ```json
 {
@@ -206,61 +421,48 @@ Once the server is running, you can access interactive API documentation:
   "blobPath": {
     "folderName": "repository-abc123",
     "subdomain": "my-custom-subdomain",
-    "path": "repository-abc123",
     "url": "https://my-custom-subdomain.rudrax.me"
   }
 }
 ```
 
-**Error Response:**
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-------------|--------|----------|-------------|
+| `ghlink` | string | Yes | GitHub repository URL (public repos only) |
+| `subdomain` | string | No | Custom subdomain (auto-generated if omitted) |
 
-```json
-{
-  "success": false,
-  "message": "Deployment failed",
-  "error": "Error message details"
-}
-```
+#### Webhook Endpoint
 
-### Example Usage with cURL
+**POST** `/int/api/v1/webhook/gh` — GitHub webhook for auto-redeploy
 
-**With custom subdomain:**
+Automatically triggered when you push to GitHub (requires webhook setup).
+
+### Using the API
+
+**With cURL:**
 
 ```bash
-# Production URL
-curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ghlink": "https://github.com/username/repository.git",
-    "subdomain": "my-awesome-site"
-  }'
-
-# Or for local development
+# Deploy with custom subdomain
 curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{
     "ghlink": "https://github.com/username/repository.git",
     "subdomain": "my-awesome-site"
   }'
-```
 
-**Without custom subdomain (uses default folder name):**
-
-```bash
-curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+# Deploy with auto-generated subdomain
+curl -X POST http://localhost:8000/api/v1/deploy \
   -H "Content-Type: application/json" \
   -d '{"ghlink": "https://github.com/username/repository.git"}'
 ```
 
-### Example Usage with JavaScript
+**With JavaScript/Fetch:**
 
 ```javascript
-// With custom subdomain (production)
-const response = await fetch("https://hostify-be.onrender.com/api/v1/deploy", {
+const response = await fetch("http://localhost:8000/api/v1/deploy", {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     ghlink: "https://github.com/username/repository.git",
     subdomain: "my-awesome-site",
@@ -269,259 +471,559 @@ const response = await fetch("https://hostify-be.onrender.com/api/v1/deploy", {
 
 const data = await response.json();
 console.log(data.blobPath.url); // https://my-awesome-site.rudrax.me
-console.log(data.blobPath.subdomain); // my-awesome-site
-console.log(data.blobPath.folderName); // repository-abc123
 ```
+
+**With Postman:**
+
+1. Create a new POST request to `http://localhost:8000/api/v1/deploy`
+2. Go to Body → raw → select JSON
+3. Paste the request JSON
+4. Click Send
+
+---
 
 ## 🔄 Auto-Redeploy with GitHub Webhooks
 
-Hostify supports automatic redeployment when you push code to GitHub, just like Vercel and Netlify!
+Deploy automatically every time you push to GitHub — just like Vercel, Netlify, and other modern hosting platforms!
 
-### Quick Setup
+### Setup Steps
 
-1. **Deploy your project first**:
+1. **Deploy your repository** first:
 
    ```bash
-   curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
+   curl -X POST http://localhost:8000/api/v1/deploy \
      -H "Content-Type: application/json" \
      -d '{
-       "ghlink": "https://github.com/username/repo",
+       "ghlink": "https://github.com/username/my-repo",
        "subdomain": "my-app"
      }'
    ```
 
-2. **Generate a webhook secret**:
+2. **Generate a webhook secret** (for security):
 
    ```bash
    node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
    ```
 
-   Add this to your `.env` as `GITHUB_WEBHOOK_SECRET`
+   Add the output to your `.env`:
 
-3. **Configure GitHub webhook**:
-   - Go to your repo → Settings → Webhooks → Add webhook
-   - Payload URL: `https://hostify-be.onrender.com/int/api/v1/webhook/gh`
-   - Content type: `application/json`
-   - Secret: Your `GITHUB_WEBHOOK_SECRET`
-   - Events: "Just the push event"
+   ```env
+   GITHUB_WEBHOOK_SECRET=your-generated-secret-here
+   ```
 
-4. **Push to GitHub** and watch your site redeploy automatically! 🎉
+3. **Create GitHub Webhook**:
+   - Go to your repository on GitHub
+   - Settings → Webhooks → Add webhook
+   - Fill in:
+     - **Payload URL**: `http://your-domain.com/int/api/v1/webhook/gh`
+       - For local dev: `http://localhost:8000/int/api/v1/webhook/gh`
+     - **Content type**: `application/json`
+     - **Secret**: Your `GITHUB_WEBHOOK_SECRET` value
+     - **Events**: Select "Just the push event" (or "Send me everything")
+   - Click "Add webhook"
+
+4. **Test it out**:
+   - Make a commit and push to GitHub
+   - Your site will automatically rebuild and redeploy!
 
 ### How It Works
 
-When you push to GitHub:
-
-1. GitHub sends a webhook to your Hostify backend
-2. Hostify verifies the signature for security
-3. Looks up all projects using that repository (from Cloudflare KV)
-4. Redeploys each project automatically
-5. Updates the `lastDeployedAt` timestamp
-
-### Multiple Deployments from Same Repo
-
-You can deploy the same repo multiple times:
-
-```bash
-# Production
-curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
-  -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app"}'
-
-# Staging
-curl -X POST https://hostify-be.onrender.com/api/v1/deploy \
-  -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app-staging"}'
+```
+┌─────────────────────────┐
+│   You push to GitHub    │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│ GitHub sends webhook    │
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│ Hostify verifies signature for safety │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│ Finds all deployments for that repo  │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│ Clones repo & uploads to Azure       │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────┐
+│ Website is live with your changes!   │
+└─────────────────────────────────────┘
 ```
 
-When you push to GitHub, **both deployments will automatically redeploy**!
+### Testing Webhooks
 
-### Testing the Webhook
-
-Use the included test script:
+**Manual test with included test script:**
 
 ```bash
 cd be
-# Test with production URL
-node test/test-webhook.js https://hostify-be.onrender.com https://github.com/username/repo.git your-webhook-secret
-
-# Or test locally
 node test/test-webhook.js http://localhost:8000 https://github.com/username/repo.git your-webhook-secret
 ```
 
-**Or use the automated test script:**
+**Or use the automated test:**
 
 ```bash
-cd be
-./scripts/test-todolist.sh production
+make test-local-backend
 ```
 
-### 📖 Full Documentation
+### Deploy Same Repo Multiple Times
 
-For complete setup instructions, troubleshooting, and advanced features, see:
-**[AUTO_REDEPLOY_SETUP.md](./AUTO_REDEPLOY_SETUP.md)**
+You can deploy the same repository to multiple subdomains:
 
-## 📁 Project Structure
+```bash
+# Production
+curl -X POST http://localhost:8000/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app"}'
 
-```
-hostify/
-├── be/
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── swagger.ts
-│   │   ├── controllers/
-│   │   │   └── deploy.controllers.ts
-│   │   ├── helpers/
-│   │   │   └── upload.ts
-│   │   ├── router/
-│   │   │   ├── deploy.router.ts
-│   │   │   └── index.ts
-│   │   ├── utils/
-│   │   │   ├── azureStorage.ts
-│   │   │   ├── cloudflare.ts
-│   │   │   ├── git.ts
-│   │   │   └── general.ts
-│   │   ├── constants/
-│   │   │   └── e.ts
-│   │   └── server.ts
-│   ├── local/                 # Temporary clone directory
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── .env
-└── README.md
+# Staging
+curl -X POST http://localhost:8000/api/v1/deploy \
+  -H "Content-Type: application/json" \
+  -d '{"ghlink": "https://github.com/username/repo", "subdomain": "my-app-staging"}'
 ```
 
-## 🔄 How It Works
+When you push, **both deployments automatically update**!
 
-1. **Receive Request**: API receives a GitHub repository URL and optional custom subdomain
-2. **Clone Repository**: Repository is cloned to a temporary local directory with a unique folder name
-3. **Subdomain Assignment**: Uses custom subdomain if provided, otherwise defaults to folder name
-4. **Process Files**:
-   - Excludes `.git` folder and `.gitignore` files
-   - Fixes absolute paths in HTML files to relative paths
-5. **Upload to Azure** (Production mode):
-   - All files are uploaded to Azure Blob Storage with proper content types
-   - Subdomain mapping is saved to Cloudflare KV
-6. **Cleanup**: Local temporary directory is deleted after successful upload (production only)
-7. **Return URL**: Responds with the deployed website URL using the chosen subdomain
+---
 
-## 🎨 Features in Detail
+## 🏗️ How it Works
 
-### Custom Subdomains
+### Deployment Flow
 
-You can specify a custom subdomain for your deployment:
+1. **You submit a deployment request** with a GitHub URL
+2. **Hostify clones the repository** to a temporary local directory
+3. **Subdomain is assigned** (custom or auto-generated)
+4. **Files are processed**:
+   - Git folder excluded
+   - Absolute paths fixed to relative paths
+   - Proper MIME types detected
 
-- **With custom subdomain**: `{"subdomain": "my-site"}` → Deployed at `https://my-site.rudrax.me`
-- **Without subdomain**: Uses auto-generated folder name → `https://repository-abc123.rudrax.me`
+5. **Files uploaded to Azure** (production mode):
+   - Uploaded to `$web` container in Azure Blob Storage
+   - Subdomain-to-folder mapping stored in Cloudflare KV
+   - Optimized cache control headers applied
 
-Subdomain mappings are stored in Cloudflare KV, allowing you to:
-
-- Route custom subdomains to the correct Azure Storage folder
-- Manage subdomain-to-deployment relationships
-- Lookup which folder a subdomain points to using `getSubdomain(subdomain)` function
+6. **Your site is live!**
+   - Accessible at your custom subdomain
+   - Automatic redeploys with webhooks
+   - Deployment metadata stored for future reference
 
 ### Development vs Production Mode
 
 **Development Mode** (`ENV=dev`):
 
-- Files are stored locally in the `UPLOAD_DIR` folder
-- Cloudflare KV is optional (warnings shown if not configured)
-- No automatic cleanup of local files
-- URLs use local paths: `/local/{folderName}`
+- Files stored locally in `UPLOAD_DIR`
+- No Azure required
+- No Cloudflare KV required (warnings only)
+- Perfect for testing and development
+- URLs: `http://localhost:8000/local/{folderName}`
 
 **Production Mode** (`ENV=production`):
 
-- Files are uploaded to Azure Blob Storage
-- Cloudflare KV is required (errors if not configured)
-- Automatic cleanup of local files after upload
-- URLs use custom domain: `https://{subdomain}.rudrax.me`
-
-### Automatic Path Fixing
-
-The service automatically converts absolute paths in HTML files to relative paths, ensuring assets load correctly in subfolder hosting:
-
-- `<script src="/script.js">` → `<script src="script.js">`
-- `<link href="/style.css">` → `<link href="style.css">`
-- `<img src="/image.png">` → `<img src="image.png">`
-
-### Smart Content-Type Detection
-
-Automatically sets correct MIME types for:
-
-- HTML, CSS, JavaScript
-- Images (PNG, JPG, GIF, SVG)
-- Documents (PDF, TXT, MD, JSON, XML)
-- Archives (ZIP)
-- And more...
-
-### Optimized Caching
-
-- HTML files: 1 hour cache
-- Static assets (CSS, JS, images): 1 year cache
-
-## 🔐 Security
-
-- Uses Helmet.js for security headers
-- CORS protection with configurable origins
-- SAS token authentication for Azure Storage
-- Input validation for GitHub URLs
-
-## 📝 API Response Codes
-
-| Status Code | Description                            |
-| ----------- | -------------------------------------- |
-| 200         | Deployment successful                  |
-| 500         | Deployment failed (with error details) |
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **404 errors for CSS/JS files**
-   - Ensure HTML files use relative paths (not absolute paths with `/`)
-   - The service automatically fixes this issue
-
-2. **Authentication errors**
-   - Verify your SAS token is valid and not expired
-   - Ensure the token has correct permissions (read, write, list, delete)
-
-3. **Clone failures**
-   - Verify the GitHub repository URL is correct
-   - Ensure the repository is public or you have access
-
-4. **Cloudflare KV authentication errors**
-   - In development: Warnings are shown but deployment continues
-   - In production: Deployment fails if Cloudflare credentials are invalid
-   - Verify your API token has correct permissions for Workers KV
-   - Check that Account ID and Namespace ID are correct
-
-5. **Local directory errors**
-   - Ensure the `UPLOAD_DIR` path is writable
-   - Check disk space availability
-
-6. **Subdomain conflicts**
-   - Each subdomain maps to one folder in Cloudflare KV
-   - Redeploying with the same subdomain updates the mapping
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-ISC
-
-## 🙏 Acknowledgments
-
-- Built with TypeScript and Express.js
-- Uses Azure Storage SDK for blob operations
-- Git operations powered by simple-git
-- API documentation powered by Swagger UI and ReDoc
-- Subdomain management with Cloudflare KV
+- Files uploaded to Azure Blob Storage
+- Subdomains routed via Cloudflare KV
+- Full CDN integration possible
+- URLs: `https://{subdomain}.your-domain.com`
 
 ---
 
-Made with ❤️ for easy static website deployment
+## 📁 Project Structure
+
+```
+hostify/
+├── be/                              # Backend (Express.js + TypeScript)
+│   ├── src/
+│   │   ├── server.ts                # Express app setup
+│   │   ├── config/
+│   │   │   ├── database.ts          # MongoDB connection
+│   │   │   ├── swagger.ts           # Swagger API docs
+│   │   │   ├── redocly.ts           # ReDoc API docs
+│   │   │   └── general.ts           # General config
+│   │   ├── constants/
+│   │   │   └── e.ts                 # Environment variables
+│   │   ├── controllers/
+│   │   │   ├── deploy.controllers.ts # Deployment logic
+│   │   │   ├── auth.controllers.ts   # OAuth logic
+│   │   │   ├── git.controllers.ts    # Git operations
+│   │   │   ├── repo.controllers.ts   # Repository operations
+│   │   │   ├── notifications.controllers.ts
+│   │   │   └── settings.controllers.ts
+│   │   ├── models/                  # MongoDB models
+│   │   │   ├── User.ts
+│   │   │   ├── Deployment.ts
+│   │   │   ├── DeveloperSettings.ts
+│   │   │   └── ...
+│   │   ├── router/                  # API routes
+│   │   │   ├── deploy.router.ts
+│   │   │   ├── auth.router.ts
+│   │   │   └── index.ts
+│   │   ├── utils/                   # Helper utilities
+│   │   │   ├── azureStorage.ts      # Azure integration
+│   │   │   ├── cloudflare.ts        # Cloudflare KV integration
+│   │   │   ├── git.ts               # Git operations
+│   │   │   └── general.ts
+│   │   ├── helpers/
+│   │   │   ├── upload.ts            # File upload logic
+│   │   │   └── emailTemplete.ts     # Email templates
+│   │   ├── services/
+│   │   │   ├── heatmap.ts
+│   │   │   └── notifications.ts
+│   │   └── scripts/
+│   │       └── cleanup-all.ts       # Cleanup utility
+│   ├── test/
+│   │   └── test-webhook.js          # Webhook testing
+│   ├── local/                       # Temporary deployment files
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── fe/                              # Frontend (SvelteKit + Tailwind)
+│   ├── src/
+│   │   ├── app.html                 # HTML shell
+│   │   ├── routes/                  # SvelteKit pages
+│   │   ├── lib/                     # Reusable components
+│   │   └── app.d.ts                 # TypeScript types
+│   ├── e2e/                         # End-to-end tests
+│   ├── static/                      # Static assets
+│   ├── playwright.config.ts         # E2E config
+│   ├── vite.config.ts               # Vite config
+│   ├── tailwind.config.ts           # Tailwind config
+│   └── package.json
+│
+├── docker/                          # Docker configurations
+│   ├── be.Dockerfile               # Backend Docker image
+│   ├── fe.Dockerfile               # Frontend Docker image
+│   └── full.Dockerfile             # Full-stack image
+│
+├── docs/                            # Documentation
+│   ├── ARCHITECTURE.md              # System architecture
+│   ├── OAUTH_IMPLEMENTATION.md      # OAuth setup guide
+│   ├── AUTO_REDEPLOY_SETUP.md       # Webhook setup guide
+│   ├── BACKEND_ENDPOINT_VERIFICATION.md
+│   ├── TESTING_GUIDE.md
+│   └── ...
+│
+├── scripts/                         # Utility scripts
+│   ├── deploy-with-webhook.sh       # Deployment helper
+│   ├── setup-oauth.sh               # OAuth setup
+│   ├── setup-frontend.sh            # Frontend setup
+│   └── cleanup-all.sh               # Full cleanup
+│
+├── docker-compose.yml               # Local dev setup
+├── Makefile                         # Build commands
+├── README.md                        # This file
+└── .gitignore
+```
+
+---
+
+## 🏗️ Deployment Architecture
+
+### Deployment Flow
+
+1. **Submit Deployment Request** → Submit GitHub URL and optional subdomain
+2. **Clone Repository** → Download latest code from GitHub
+3. **Assign Subdomain** → Create custom or auto-generated subdomain
+4. **Process Files** → Exclude git files, fix absolute paths, detect MIME types
+5. **Upload to Azure** → Store all files in Azure Blob Storage with optimal caching
+6. **Update Mappings** → Store subdomain-to-folder mapping in Cloudflare KV
+7. **Website Live** → Accessible at your custom subdomain immediately
+
+### How Auto-Redeploy Works
+
+```
+┌──────────────────────────────┐
+│   You push code to GitHub    │
+└──────────┬───────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│ GitHub sends webhook to Hostify  │
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│ Verify webhook signature for safety
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│ Find all deployments for this repo
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│ For each deployment:             │
+│ • Clone latest code              │
+│ • Upload to Azure                │
+│ • Update Cloudflare KV           │
+└──────────┬───────────────────────┘
+           │
+           ▼
+┌──────────────────────────────────┐
+│ Your site is live with changes! 🎉
+└──────────────────────────────────┘
+```
+
+---
+
+## 🔐 Security & Performance
+
+## � Security & Performance
+
+### Security Features
+
+- **Webhook Signature Verification**: Uses HMAC-SHA256 to verify GitHub webhooks
+- **Security Headers**: Helmet.js provides comprehensive security headers
+- **CORS Protection**: Configurable cross-origin resource sharing
+- **Input Validation**: All user inputs validated for GitHub URLs
+- **SAS Token Authentication**: Azure Storage access via time-limited tokens
+- **Environment Separation**: Dev and production modes with different configurations
+
+### Performance Optimizations
+
+- **Smart Caching**: HTML updates frequently (1h cache), assets cached for 1 year
+- **Automatic Cleanup**: Local temporary files deleted after successful upload
+- **Efficient Routing**: Cloudflare KV for O(1) subdomain lookups
+- **Proper Content-Types**: All files get correct MIME types for optimal delivery
+- **Auto Path Fixing**: Assets load correctly from any subfolder
+- **Scalable Architecture**: Ready for multiple concurrent deployments
+
+---
+
+## 🧪 Testing & Deployment
+
+### Running Tests
+
+**Test locally:**
+
+```bash
+make test-local-backend
+```
+
+**Test against production:**
+
+```bash
+make test-prod-backend
+```
+
+**Manual webhook testing:**
+
+```bash
+cd be
+node test/test-webhook.js http://localhost:8000 https://github.com/username/repo.git your-webhook-secret
+```
+
+### E2E Testing (Frontend)
+
+```bash
+cd fe
+npm run test:e2e       # Run E2E tests
+npm run test:e2e:ui    # Run with UI
+```
+
+### Building for Production
+
+**Backend:**
+
+```bash
+cd be
+npm run build          # Compile TypeScript
+npm start              # Run production server
+```
+
+**Frontend:**
+
+```bash
+cd fe
+npm run build          # Create optimized build
+npm run preview        # Preview the build locally
+```
+
+### Deploying with Docker
+
+Build and run production containers:
+
+```bash
+docker build -f docker/be.Dockerfile -t hostify-backend .
+docker build -f docker/fe.Dockerfile -t hostify-frontend .
+
+docker run -p 8000:8000 --env-file .env hostify-backend
+docker run -p 3000:3000 hostify-frontend
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Common Issues & Solutions
+
+| Issue                                | Cause                             | Solution                                                               |
+| ------------------------------------ | --------------------------------- | ---------------------------------------------------------------------- |
+| **404 on CSS/JS files**              | Links use absolute paths          | Files are auto-fixed; ensure HTML doesn't use dynamic paths            |
+| **Deployment fails with auth error** | Invalid Azure credentials         | Check SAS token validity and permissions (read, write, delete, list)   |
+| **Clone command fails**              | Private repo or invalid URL       | Ensure repo is public; verify GitHub URL format                        |
+| **Cloudflare KV not working**        | Invalid credentials in production | Verify API token has KV permissions; check Account ID and Namespace ID |
+| **Port already in use**              | Another service using port 8000   | Change PORT in `.env` or stop conflicting service                      |
+| **MongoDB connection fails**         | Database not running or bad URI   | Start MongoDB or check MONGODB_URI in `.env`                           |
+| **Webhook doesn't trigger redeploy** | Webhook not configured correctly  | Verify webhook secret matches; check GitHub webhook delivery logs      |
+| **Out of disk space**                | UPLOAD_DIR filling up             | Run `make clean-local` to remove old temporary files                   |
+
+### Debug Mode
+
+For more detailed logging, check:
+
+- Backend logs: `npm run dev` shows all output
+- Docker logs: `docker compose logs -f backend`
+- MongoDB logs: `docker compose logs -f mongo`
+
+### Useful Commands
+
+```bash
+# Clean up all local deployment files
+make clean-local
+
+# View make commands
+make help
+
+# Check environment setup
+env | grep HOSTIFY
+
+# Restart from scratch
+docker compose down -v
+docker compose up --build
+```
+
+---
+
+## 📚 Additional Resources
+
+**Documentation:**
+
+- [Architecture Overview](docs/ARCHITECTURE.md) — System design and data flow
+- [OAuth Implementation](docs/OAUTH_IMPLEMENTATION.md) — GitHub OAuth setup and flow
+- [Auto-Redeploy Setup](docs/AUTO_REDEPLOY_SETUP.md) — Complete webhook guide
+- [Webhook Testing](docs/AUTOMATED_WEBHOOK_SETUP.md) — Advanced webhook scenarios
+- [API Verification](docs/BACKEND_ENDPOINT_VERIFICATION.md) — Endpoint testing guide
+
+**External Links:**
+
+- [Express.js](https://expressjs.com/) — Backend framework
+- [SvelteKit](https://kit.svelte.dev/) — Frontend framework
+- [Azure Storage](https://learn.microsoft.com/azure/storage/) — Cloud hosting
+- [Cloudflare Workers KV](https://developers.cloudflare.com/workers/runtime-apis/kv/) — Subdomain routing
+- [GitHub Webhooks](https://docs.github.com/en/developers/webhooks-and-events/webhooks) — Webhook documentation
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get involved:
+
+### Getting Started
+
+1. **Fork the repository** on GitHub
+2. **Clone your fork** locally:
+   ```bash
+   git clone https://github.com/YOUR-USERNAME/hostify.git
+   cd hostify
+   ```
+3. **Create a feature branch**:
+   ```bash
+   git checkout -b feature/YourFeatureName
+   ```
+
+### Making Changes
+
+1. **Make your changes** and test them locally
+2. **Run tests** to ensure nothing broke:
+   ```bash
+   make test-local-backend
+   ```
+3. **Commit with clear messages**:
+   ```bash
+   git commit -m "feat: Add new deployment feature"
+   ```
+4. **Push to your fork**:
+   ```bash
+   git push origin feature/YourFeatureName
+   ```
+5. **Open a Pull Request** with a clear description
+
+### Code Standards
+
+- Use TypeScript for all backend code
+- Follow the existing code structure and naming conventions
+- Add comments for complex logic
+- Test your changes before submitting
+- Update documentation if needed
+
+### Areas for Contribution
+
+- 🐛 **Bug fixes** — Fix reported issues
+- ✨ **Features** — Add new capabilities
+- 📚 **Documentation** — Improve guides and examples
+- 🧪 **Tests** — Add or improve test coverage
+- 🎨 **UI/UX** — Enhance the frontend experience
+
+---
+
+## 📄 License
+
+This project is licensed under the **ISC License** — see the LICENSE file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+**Built with awesome open-source projects:**
+
+- **Express.js** — Fast, unopinionated Node.js web framework
+- **SvelteKit** — Next-gen frontend framework with SSR
+- **TypeScript** — Type-safe JavaScript development
+- **Azure SDK** — Cloud storage integration
+- **Cloudflare Workers KV** — Global key-value storage
+- **GitHub API** — Repository access and OAuth
+- **Swagger UI** — Modern API documentation
+- **ReDoc** — Beautiful API reference
+- **Docker** — Containerization and local development
+- **MongoDB** — User data persistence
+- **Tailwind CSS** — Utility-first styling
+
+---
+
+## 📊 Project Status
+
+- ✅ **Core deployment** — Fully functional
+- ✅ **GitHub OAuth** — Implemented and tested
+- ✅ **Auto-redeploy webhooks** — Production ready
+- ✅ **Dashboard** — Basic functionality complete
+- 🚀 **In development** — Advanced features and optimizations
+
+---
+
+## 📞 Support & Community
+
+- **Questions?** — Check the docs folder or open an issue
+- **Found a bug?** — Open an issue with details and steps to reproduce
+- **Have an idea?** — Start a discussion or open a feature request
+- **Need help?** — Check troubleshooting section above
+
+---
+
+<div align="center">
+
+### ⭐ Like Hostify? Star us on GitHub!
+
+**Made with ❤️ for developers who want simple, powerful static site hosting**
+
+[⬆ Back to top](#hostify-)
+
+</div>

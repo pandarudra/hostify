@@ -9,3 +9,5 @@ export interface UserType {
 	twoFactorEmail?: string;
 	twoFactorEnabled: boolean;
 }
+
+export type twoFactorStageType = 'idle' | 'code';

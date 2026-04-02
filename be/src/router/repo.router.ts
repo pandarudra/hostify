@@ -5,6 +5,7 @@ import {
   getDeployment,
   deleteDeployment,
   getActivityHeatmap,
+  backfillActivityHeatmap,
 } from "../controllers/repo.controllers.js";
 import { authenticate } from "../utils/jwt.js";
 
@@ -23,3 +24,4 @@ repoRouter.delete("/deployments/:id", deleteDeployment);
 
 // Activity & analytics
 repoRouter.get("/activities/heatmap", getActivityHeatmap);
+repoRouter.post("/activities/heatmap/backfill", backfillActivityHeatmap);

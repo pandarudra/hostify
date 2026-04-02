@@ -14,6 +14,7 @@ import {
   GITHUB_CLIENT_SECRET,
   isProd,
 } from "../constants/e.js";
+import { incrementUserHeatmap } from "../services/heatmap.js";
 
 const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -223,6 +224,8 @@ export const githubCallback = async (
       });
     });
 
+    await incrementUserHeatmap(user._id);
+
     // Redirect to frontend with token
     res.redirect(`${FRONTEND_URL}/auth/success?token=${token}`);
   } catch (error) {
@@ -390,6 +393,8 @@ export const verifyTwoFactorLogin = async (
       githubId: user.githubId,
       username: user.username,
     });
+
+    await incrementUserHeatmap(user._id);
 
     return res.status(200).json({ success: true, token: fullToken });
   } catch (error) {
